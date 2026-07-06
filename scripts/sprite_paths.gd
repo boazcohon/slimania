@@ -14,8 +14,10 @@ extends Node
 
 const PATHS: Dictionary = {
 	# --- Characters ---------------------------------------------------------
-	"goopzz": "res://slimania assets/characters/goopzz/Goopzz full rez 2d.png",
-	"goopzz_angry": "res://slimania assets/characters/goopzz/Goopzz angry full rez 2d.png",
+	# Goopzz v2 (the shiny shaded ones, 1024px). The old "full rez 2d" files
+	# are still in the folder if you ever want to compare.
+	"goopzz": "res://slimania assets/characters/goopzz/goopzz.png",
+	"goopzz_angry": "res://slimania assets/characters/goopzz/goopzz angry.png",
 	"enemy_slime": "res://slimania assets/characters/enemy slime/enemy slime full rez 2d.png",
 	"enemy_slime_attacking": "res://slimania assets/characters/enemy slime/enemy slime attacking full rez 2d.png",
 	"kath": "res://slimania assets/characters/catherine/cath full rez 2d.png",  # Phase 2 story NPC (not used yet)
@@ -23,12 +25,15 @@ const PATHS: Dictionary = {
 
 	# --- Items ----------------------------------------------------------------
 	"sword": "res://slimania assets/items/goopzz/sword/goopzz s word.png",
+	"move_disc": "res://slimania assets/items/move disc/move disc.png",
 
 	# --- Terrain ---------------------------------------------------------------
 	# The sand art has a black band along the top — we use that as the visible
-	# "top wall" of each room, Among-Us style.
+	# "top wall" of each room, Among-Us style. The forest ground has no band,
+	# so overworld.gd paints a dark top wall for forest rooms itself.
 	"beach_sand": "res://slimania assets/terrain/areas/beach/beach sand normal full rez 2d.png",
 	"beach_scene": "res://slimania assets/terrain/areas/beach/ground.png",
+	"forest_ground": "res://slimania assets/terrain/areas/forest/forest grassy ground.png",
 
 	# --- Logos ------------------------------------------------------------------
 	"logo_invaded": "res://slimania assets/logo/1/slimania invaded.png",

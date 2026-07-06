@@ -49,9 +49,9 @@ func _ready() -> void:
 		icon.texture = blob
 		caption = UiHelpers.label("+%d HP" % HEAL_AMOUNT, 16, Color(1.0, 0.75, 0.85))
 	else:
-		# The little pixel logo makes a perfect mysterious "Move Disc".
-		icon.texture = SpritePaths.tex("logo_small")
-		icon.scale = Vector2.ONE * 0.9
+		# Isaac's rainbow Move Disc (Slimania's answer to a Pokemon TM).
+		icon.texture = SpritePaths.tex("move_disc")
+		icon.scale = Vector2.ONE * 0.06  # the art is 1024px; show it ~60px wide
 		caption = UiHelpers.label("Move Disc!", 16, Color(0.75, 1.0, 0.8))
 	add_child(icon)
 

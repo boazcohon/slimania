@@ -14,6 +14,7 @@ const FILES: Array = [
 	"res://scripts/moves.gd",
 	"res://scripts/run_manager.gd",
 	"res://scripts/ui_helpers.gd",
+	"res://scripts/guide_slime.gd",
 	"res://scripts/player.gd",
 	"res://scripts/enemy.gd",
 	"res://scripts/pickup.gd",
