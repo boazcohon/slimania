@@ -1,8 +1,10 @@
 # SLIMANIA — Phase 1: the roguelike prototype
 
 You are **Goopzz**, a green slime with a wooden sword, bonking his way through
-5 beach rooms of red invader slimes. Die and the run restarts — that's the
-roguelike loop. All art is hand-drawn by Isaac.
+8 rooms of red invader slimes — 5 on the beach, then 3 in the tougher
+**forest**. Die and the run restarts — that's the roguelike loop. **Blurpo**,
+the purple help slime in the corner, tells you what to do in each room.
+All art is hand-drawn by Isaac.
 
 ## How to open and run it (Godot 4)
 
@@ -34,10 +36,25 @@ that scene by itself — every scene has safe defaults, so they all work solo.
 - Winning a battle gives XP (level-ups = more HP and attack) **and** a
   pick-1-of-3 new move. You carry **4 moves** — learning a 5th means
   forgetting one, Pokémon-style.
-- **Move Discs** and **healing jelly** sit on the sand in some rooms.
+- **Move Discs** and **healing jelly** sit on the ground in some rooms.
 - Water hurts slimes (hop over it — enemies can't follow). Swords hurt slimes
   extra. *Everyone here is a slime.* Plan accordingly.
-- 5 rooms, escalating. Room 5 holds **General Wobble**. Good luck.
+- 8 rooms, escalating: the beach ends with **General Wobble** (room 5), and
+  the forest ends with **Duke Mulch** (room 8). Good luck.
+
+## How damage works (no secrets!)
+
+Every hit is `(move power + attacker's ATTACK) × type bonus × a little luck`:
+
+- Your **ATTACK** stat (shown under your HP, and next to your name in battle)
+  is added to every damaging move. It grows +1 per level, +3 per Battle Cry.
+- **Type bonus**: sword moves ×1.5, water ×1.25 — slimes hate both.
+- **Luck**: every hit is randomly wiggled between 85% and 115%.
+- A **Goo Shield** halves the next hit you take. Sand Throw lowers the
+  enemy's ATTACK instead.
+
+In battle, each move button shows its type and the *real* number range it
+would do this turn, recalculated live as buffs come and go.
 
 ## The easiest things to tweak first
 
@@ -68,8 +85,8 @@ Scripts ask for art by nickname (`SpritePaths.tex("goopzz")`), so:
 - Missing files never crash the game — you get a gray box and a warning.
 
 Current placeholders waiting for real art (marked `TODO(Isaac)` in code):
-water pools, rock walls, the healing-jelly pickup, and the game icon
-(`icon.svg`).
+water pools, rock walls, the healing-jelly pickup, the forest's dark top wall
+(a painted rectangle for now), and the game icon (`icon.svg`).
 
 ## How the code is organized
 
@@ -81,6 +98,7 @@ scripts/
   moves.gd               every battle move (data-driven — add moves here)
   run_manager.gd         the current run: HP, level, loadout, room list
   ui_helpers.gd          shared factories for labels/bars/buttons
+  guide_slime.gd         Blurpo, the purple help slime who gives hints/tips
   player.gd              Goopzz: walking, hopping, climbing, water
   enemy.gd               red slimes: wander → chase → touch = battle
   pickup.gd              Move Discs and healing jelly
@@ -94,10 +112,12 @@ tests/validate.gd        optional smoke test (see file header)
 
 ## Phase 2 hooks (already in place, not built yet)
 
-- **Kath** and the **purple help slime** sprites are mapped in
-  `sprite_paths.gd`, ready for story NPCs.
-- Rooms are data — forest/rocks/mountain areas are new entries in `ROOMS`
-  (or a second room list) with their own backdrop art.
+- **Kath**'s sprite is mapped in `sprite_paths.gd`, ready for story NPCs —
+  and the **help slime** is already in the game as Blurpo the guide, ready
+  to step into his bigger story role.
+- Rooms are data — the forest was added exactly this way, and
+  rocks/mountain/volcano areas are just new entries in `ROOMS` with their own
+  ground art (see `AREA_BACKDROPS` in `overworld.gd`).
 - Climbing is deliberately weak: the **climbing gloves** quest reward can
   simply raise `climb_max_stamina`.
 - `RunManager` is the "combat brain"; story/quests belong in a new

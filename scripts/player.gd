@@ -30,7 +30,7 @@ signal died  # fired when HP reaches 0 in the overworld (water damage)
 @export var water_damage := 5          # HP lost when touching water
 @export var hurt_safety_time := 1.0    # invincibility seconds after getting hurt
 
-const SPRITE_SCALE := 0.14  # Isaac's art is 512px; this shrinks it to ~72px
+const SPRITE_SCALE := 0.105  # Goopzz v2 art is 1024px; this shows him ~70px tall
 
 # ------------------------- state -------------------------
 var is_airborne := false

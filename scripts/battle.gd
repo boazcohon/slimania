@@ -41,6 +41,8 @@ var goopzz_sprite: Sprite2D
 var enemy_sprite: Sprite2D
 var sword_sprite: Sprite2D
 var message_label: Label
+var player_name_label: Label
+var enemy_name_label: Label
 var player_hp_bar: ProgressBar
 var player_hp_text: Label
 var enemy_hp_bar: ProgressBar
@@ -113,7 +115,7 @@ func _build_ui() -> void:
 
 	goopzz_sprite = Sprite2D.new()
 	goopzz_sprite.texture = SpritePaths.tex("goopzz")
-	goopzz_sprite.scale = Vector2.ONE * 0.35
+	goopzz_sprite.scale = Vector2.ONE * 0.28  # v2 art is 1024px, so smaller scale
 	goopzz_sprite.position = goopzz_home
 	add_child(goopzz_sprite)
 
@@ -126,11 +128,9 @@ func _build_ui() -> void:
 	add_child(sword_sprite)
 
 	# --- enemy info (top-left, like Pokemon) ---
-	var enemy_name := UiHelpers.label(
-		"%s  Lv %d" % [enemy_stats.get("name", "???"), enemy_stats.get("level", 1)], 22
-	)
-	enemy_name.position = Vector2(110, 75)
-	add_child(enemy_name)
+	enemy_name_label = UiHelpers.label("", 22)
+	enemy_name_label.position = Vector2(110, 75)
+	add_child(enemy_name_label)
 
 	enemy_hp_bar = UiHelpers.styled_bar(Color(0.85, 0.25, 0.25), Vector2(300, 20))
 	enemy_hp_bar.position = Vector2(110, 110)
@@ -141,9 +141,9 @@ func _build_ui() -> void:
 	add_child(enemy_hp_text)
 
 	# --- player info (bottom-left) ---
-	var player_name := UiHelpers.label("Goopzz  Lv %d" % RunManager.player_level, 22)
-	player_name.position = Vector2(110, 462)
-	add_child(player_name)
+	player_name_label = UiHelpers.label("", 22)
+	player_name_label.position = Vector2(110, 462)
+	add_child(player_name_label)
 
 	player_hp_bar = UiHelpers.styled_bar(Color(0.2, 0.8, 0.4), Vector2(300, 20))
 	player_hp_bar.position = Vector2(110, 497)
@@ -172,17 +172,57 @@ func _build_ui() -> void:
 	for slot in RunManager.loadout.size():
 		var move_id: String = RunManager.loadout[slot]
 		var move := Moves.get_move(move_id)
-		var text := "%d. %s" % [slot + 1, move.name]
-		if move.get("effect", "") in ["damage", "multi_hit", "damage_recoil"]:
-			text += "  (%d)" % int(move.get("power", 0))
-		var button := UiHelpers.styled_button(text, Moves.type_color(move.type), 18)
+		var button := UiHelpers.styled_button("", Moves.type_color(move.type), 16)
 		button.custom_minimum_size = Vector2(250, 62)
 		button.tooltip_text = str(move.get("description", ""))
 		button.pressed.connect(_on_move_pressed.bind(move_id))
 		grid.add_child(button)
 		move_buttons.append(button)
 
+	_update_move_buttons()
 	_refresh_bars()
+
+
+## What one damaging move would REALLY do right now, before the random
+## wiggle: (power + your attack + any Battle Cry bonus) x type multiplier.
+## Returns the lowest and highest possible hit as (x, y).
+func _damage_range(move: Dictionary) -> Vector2i:
+	var base := float(int(move.get("power", 0)) + RunManager.player_attack + player_attack_bonus)
+	base *= float(Moves.TYPE_MULTIPLIER.get(move.get("type", "slime"), 1.0))
+	return Vector2i(
+		maxi(1, int(round(base * DAMAGE_WIGGLE_LOW))),
+		maxi(1, int(round(base * DAMAGE_WIGGLE_HIGH)))
+	)
+
+
+## Two lines per button: the move's name, then its type and what it will
+## actually do THIS turn. Called again whenever your attack changes, so the
+## numbers always tell the truth.
+func _update_move_buttons() -> void:
+	for slot in move_buttons.size():
+		if slot >= RunManager.loadout.size():
+			continue
+		var move := Moves.get_move(RunManager.loadout[slot])
+		var detail := str(move.type)
+		match move.get("effect", "damage"):
+			"damage":
+				var hit := _damage_range(move)
+				detail += " · %d-%d dmg" % [hit.x, hit.y]
+			"multi_hit":
+				var hit := _damage_range(move)
+				detail += " · %d-%d dmg x%d hits" % [hit.x, hit.y, int(move.get("hits", 2))]
+			"damage_recoil":
+				var hit := _damage_range(move)
+				detail += " · %d-%d dmg, %d recoil" % [hit.x, hit.y, int(move.get("recoil", 0))]
+			"heal":
+				detail += " · heal %d HP" % int(move.get("power", 0))
+			"shield":
+				detail += " · halve the next hit"
+			"buff_attack":
+				detail += " · your attack +%d" % int(move.get("power", 0))
+			"debuff_attack":
+				detail += " · enemy attack -%d" % int(move.get("power", 0))
+		move_buttons[slot].text = "%d. %s\n%s" % [slot + 1, move.name, detail]
 
 
 func _refresh_bars() -> void:
@@ -192,6 +232,14 @@ func _refresh_bars() -> void:
 	enemy_hp_bar.max_value = enemy_stats.get("max_hp", 1)
 	enemy_hp_bar.value = enemy_stats.get("hp", 0)
 	enemy_hp_text.text = "%d / %d" % [enemy_stats.get("hp", 0), enemy_stats.get("max_hp", 1)]
+	# Both name lines show live ATTACK so buffs/debuffs are never a mystery.
+	player_name_label.text = "Goopzz  Lv %d  ·  ATK %d" % [
+		RunManager.player_level, RunManager.player_attack + player_attack_bonus,
+	]
+	enemy_name_label.text = "%s  Lv %d  ·  ATK %d" % [
+		enemy_stats.get("name", "???"), enemy_stats.get("level", 1),
+		maxi(0, int(enemy_stats.get("attack", 0)) + enemy_attack_bonus),
+	]
 
 
 func _say(text: String) -> void:
@@ -200,6 +248,8 @@ func _say(text: String) -> void:
 
 func _set_buttons_enabled(enabled: bool) -> void:
 	busy = not enabled
+	if enabled:
+		_update_move_buttons()  # attack may have changed — keep numbers honest
 	for button in move_buttons:
 		button.disabled = not enabled
 

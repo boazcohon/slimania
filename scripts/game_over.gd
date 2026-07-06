@@ -6,7 +6,7 @@ extends Control
 ##  This restart-from-the-top loop IS the roguelike part.
 ## ============================================================================
 
-## Rotating tips shown after a defeat — add your own!
+## Rotating tips Blurpo shares after a defeat — add your own!
 const TIPS: Array = [
 	"Tip: slimes are weak to swords. Good thing you HAVE one.",
 	"Tip: Goo Shield right before a boss's turn cuts the hit in half.",
@@ -47,7 +47,7 @@ func _ready() -> void:
 
 	var message: String
 	if won:
-		message = "You bonked General Wobble and freed the beach!\nNext stop: the FOREST... (coming in Phase 2)"
+		message = "You bonked Duke Mulch and freed the beach AND the forest!\nNext stop: Forest Town... (coming in Phase 2)"
 	else:
 		message = "Goopzz melted into a sad little puddle...\nbut slimes ALWAYS bounce back."
 	var subtitle := UiHelpers.label(message, 22, Color(0.9, 0.9, 0.85))
@@ -68,17 +68,19 @@ func _ready() -> void:
 	stats.position = Vector2(0, 470)
 	add_child(stats)
 
-	if not won:
-		var tip := UiHelpers.label(TIPS.pick_random(), 17, Color(0.85, 0.8, 0.6))
-		tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		tip.custom_minimum_size = Vector2(1280, 0)
-		tip.position = Vector2(0, 520)
-		add_child(tip)
+	# Blurpo the guide slime hands out a tip after a defeat — or a well-earned
+	# cheer after a win.
+	var guide := GuideSlime.new()
+	add_child(guide)
+	if won:
+		guide.say("You did it, hero! The invaders are running scared. See you in Forest Town!")
+	else:
+		guide.say(TIPS.pick_random())
 
 	var press := UiHelpers.label("—  PRESS ENTER TO PLAY AGAIN  —", 24, Color(0.9, 0.95, 0.9))
 	press.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	press.custom_minimum_size = Vector2(1280, 0)
-	press.position = Vector2(0, 600)
+	press.position = Vector2(0, 520)
 	add_child(press)
 	var blink := create_tween().set_loops()
 	blink.tween_property(press, "modulate:a", 0.25, 0.6)

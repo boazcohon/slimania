@@ -38,19 +38,23 @@ var run_won: bool = false      # true when the player beats the last room
 ## ============================================================================
 ##  THE ROOMS — one dictionary per room, in order. Positions are in "room
 ##  pixels": each room is 1920 wide and 1024 tall (the size of Isaac's sand
-##  art). The playable sand starts below y=260 (above that is the black top
+##  art). The playable ground starts below y=260 (above that is the top
 ##  wall). Things you can put in a room:
 ##    "title"       — shown at the top of the screen
-##    "hint"        — helper text at the bottom of the screen ("" for none)
+##    "area"        — "beach" or "forest" (picks the ground art; forest is
+##                    the tougher second half of the run)
+##    "hint"        — what Blurpo the guide slime says when you arrive
 ##    "enemies"     — list of {"pos", "level"} (+ "boss": true for big ones)
 ##    "pickups"     — list of {"pos", "kind"} where kind is "move" or "heal"
 ##    "water"       — list of Rect2 water pools (JUMP over them — they hurt!)
 ##    "climb_walls" — list of Rect2 rock walls (hold SHIFT to climb over)
 ## ============================================================================
 const ROOMS: Array = [
+	# ------------------------------ THE BEACH ------------------------------
 	{
 		"title": "Sandy Landing",
-		"hint": "WASD / arrows to move  ·  SPACE to hop  ·  walk into a slime to battle it!",
+		"area": "beach",
+		"hint": "Welcome back, hero! WASD to move, SPACE to hop — and walk into that red slime to battle it!",
 		"enemies": [{"pos": Vector2(1400, 640), "level": 1}],
 		"pickups": [],
 		"water": [],
@@ -58,7 +62,8 @@ const ROOMS: Array = [
 	},
 	{
 		"title": "Tide Pools",
-		"hint": "Hop over the water with SPACE — slimes and water do NOT mix!",
+		"area": "beach",
+		"hint": "Hop over the water with SPACE — slimes and water do NOT mix! That rainbow thing is a Move Disc. Grab it!",
 		"enemies": [
 			{"pos": Vector2(1250, 450), "level": 1},
 			{"pos": Vector2(1500, 750), "level": 2},
@@ -69,7 +74,8 @@ const ROOMS: Array = [
 	},
 	{
 		"title": "The Rocks",
-		"hint": "Hold SHIFT on the rocks to climb — but hurry, slimes slip!",
+		"area": "beach",
+		"hint": "Hold SHIFT on the rocks to climb — but hurry, slimes slip when their grip runs out!",
 		"enemies": [
 			{"pos": Vector2(1300, 400), "level": 2},
 			{"pos": Vector2(1450, 800), "level": 3},
@@ -80,7 +86,8 @@ const ROOMS: Array = [
 	},
 	{
 		"title": "Slime Patrol",
-		"hint": "",
+		"area": "beach",
+		"hint": "Three on patrol! They're slower than you — lead them around and fight one at a time.",
 		"enemies": [
 			{"pos": Vector2(1150, 350), "level": 3},
 			{"pos": Vector2(1350, 650), "level": 3},
@@ -92,12 +99,53 @@ const ROOMS: Array = [
 	},
 	{
 		"title": "Invader's Camp",
-		"hint": "The invasion leader is here. Show him what a REAL hero slime can do!",
+		"area": "beach",
+		"hint": "General Wobble runs the beach invasion. Show him what a REAL hero slime can do!",
 		"enemies": [
 			{"pos": Vector2(1100, 850), "level": 2},
 			{"pos": Vector2(1500, 620), "level": 5, "boss": true},
 		],
 		"pickups": [{"pos": Vector2(350, 400), "kind": "heal"}],
+		"water": [],
+		"climb_walls": [],
+	},
+	# ------------------------------ THE FOREST ------------------------------
+	# The second-most slime-packed place in Slimania. Everything here is a
+	# level or two meaner than the beach — heal up and pick moves wisely.
+	{
+		"title": "Forest Edge",
+		"area": "forest",
+		"hint": "The FOREST! Slimes grow bigger under the trees. Hop the stream if you need to shake off a chaser.",
+		"enemies": [
+			{"pos": Vector2(1250, 420), "level": 4},
+			{"pos": Vector2(1500, 780), "level": 4},
+		],
+		"pickups": [{"pos": Vector2(350, 420), "kind": "heal"}],
+		"water": [Rect2(760, 260, 120, 764)],
+		"climb_walls": [],
+	},
+	{
+		"title": "Deep Woods",
+		"area": "forest",
+		"hint": "It's dark in here... these bullies hit HARD. Sand Throw makes them gentler, and Goo Shield never goes out of style.",
+		"enemies": [
+			{"pos": Vector2(1200, 380), "level": 5},
+			{"pos": Vector2(1400, 860), "level": 4},
+			{"pos": Vector2(1650, 560), "level": 5},
+		],
+		"pickups": [{"pos": Vector2(1780, 330), "kind": "move"}],
+		"water": [],
+		"climb_walls": [Rect2(950, 260, 110, 500)],
+	},
+	{
+		"title": "Heart of the Forest",
+		"area": "forest",
+		"hint": "Duke Mulch, the forest boss! Shield before his big slams, and don't be shy about healing.",
+		"enemies": [
+			{"pos": Vector2(1050, 850), "level": 4},
+			{"pos": Vector2(1500, 600), "level": 6, "boss": true},
+		],
+		"pickups": [{"pos": Vector2(330, 380), "kind": "heal"}],
 		"water": [],
 		"climb_walls": [],
 	},
@@ -167,7 +215,14 @@ func add_xp(amount: int) -> int:
 ## enemies stronger/weaker for the whole game is a one-line change.
 func make_enemy_stats(level: int, is_boss: bool = false) -> Dictionary:
 	var names: Dictionary = {
-		1: "Baby Red", 2: "Red Slime", 3: "Angry Red", 4: "Slime Bruiser", 5: "Slime Bully",
+		1: "Baby Red", 2: "Red Slime", 3: "Angry Red", 4: "Slime Bruiser",
+		5: "Slime Bully", 6: "Camo Red", 7: "Elder Red",
+	}
+	# Each area's boss has a name. (The TRUE final boss arrives in Phase 2 —
+	# Isaac wants to code that reveal himself!)
+	var boss_names: Dictionary = {
+		5: "General Wobble",  # runs the beach invasion
+		6: "Duke Mulch",      # rules the forest for the invaders
 	}
 	var enemy_moves: Array = ["tackle"]
 	if level >= 2:
@@ -186,9 +241,7 @@ func make_enemy_stats(level: int, is_boss: bool = false) -> Dictionary:
 		"sprite_scale": 1.0 + (level - 1) * 0.06,  # higher level = slightly bigger
 	}
 	if is_boss:
-		# The leader of the BEACH invasion. (The true final boss arrives in
-		# Phase 2 — Isaac wants to code that reveal himself!)
-		stats.name = "General Wobble"
+		stats.name = boss_names.get(level, "General Wobble")
 		stats.max_hp = int(stats.max_hp * 1.7)
 		stats.moves = ["chomp", "big_slam", "war_cry"]
 		stats.xp = int(stats.xp * 2)

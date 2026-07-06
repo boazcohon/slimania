@@ -29,6 +29,15 @@ const BORDER := 26.0                    # thickness of the other three walls
 const EXIT_RECT := Rect2(1856, 540, 64, 170)  # the gate in the right wall
 const PLAYER_SPAWN := Vector2(200, 760)
 
+## Which ground art each area uses (add new areas here — mountain, volcano...).
+const AREA_BACKDROPS: Dictionary = {
+	"beach": "beach_sand",
+	"forest": "forest_ground",
+}
+## The beach art has its own painted black top wall. Other areas don't, so we
+## paint one in this color (dark forest green for now).
+const FOREST_TOP_WALL_COLOR := Color(0.07, 0.16, 0.09)
+
 var player: Player
 var enemies_left := 0
 var exit_open := false
@@ -39,9 +48,11 @@ var room_wall_rects: Array = []
 var hud: CanvasLayer
 var hp_bar: ProgressBar
 var hp_text: Label
+var attack_label: Label
 var xp_bar: ProgressBar
 var xp_text: Label
 var name_label: Label
+var guide: GuideSlime
 var slimes_left_label: Label
 var jump_bar: ProgressBar
 var climb_bar: ProgressBar
@@ -55,7 +66,7 @@ func _ready() -> void:
 	# Never start a room frozen (pausing is how battles stop the world).
 	get_tree().paused = false
 	var config := RunManager.room_config()
-	_build_backdrop()
+	_build_backdrop(config)
 	_build_borders()
 	_build_climb_walls(config)   # before the player, so he gets the wall list
 	_build_water(config)
@@ -74,11 +85,32 @@ func _process(delta: float) -> void:
 
 # ============================ building the room ============================
 
-func _build_backdrop() -> void:
+func _build_backdrop(config: Dictionary) -> void:
+	var area: String = config.get("area", "beach")
 	var backdrop := Sprite2D.new()
-	backdrop.texture = SpritePaths.tex("beach_sand")
+	backdrop.texture = SpritePaths.tex(AREA_BACKDROPS.get(area, "beach_sand"))
 	backdrop.centered = false  # its top-left corner is the room's (0, 0)
+	# Stretch whatever size the art is to exactly fill the room.
+	var texture_size := backdrop.texture.get_size()
+	if texture_size.x > 0.0 and texture_size.y > 0.0:
+		backdrop.scale = ROOM_SIZE / texture_size
 	add_child(backdrop)
+
+	# Beach art comes with its own painted top wall (the black band). For any
+	# other area we paint the visible top wall ourselves, Among-Us style.
+	if area != "beach":
+		var top_wall := ColorRect.new()
+		top_wall.color = FOREST_TOP_WALL_COLOR
+		top_wall.size = Vector2(ROOM_SIZE.x, TOP_WALL_HEIGHT)
+		top_wall.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(top_wall)
+		# A lighter strip along its base — the faux-3D "sunlit edge".
+		var edge := ColorRect.new()
+		edge.color = FOREST_TOP_WALL_COLOR.lightened(0.3)
+		edge.position = Vector2(0, TOP_WALL_HEIGHT - 14)
+		edge.size = Vector2(ROOM_SIZE.x, 14)
+		edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(edge)
 
 
 ## An invisible-or-colored solid rectangle. Used for borders and rock walls.
@@ -319,6 +351,7 @@ func _open_exit() -> void:
 	exit_gate.queue_free()
 	exit_sign.add_theme_color_override("font_color", Color(0.5, 1.0, 0.6))
 	_toast("Room clear! The exit is open →")
+	guide.say("Room clear! Head through the exit on the right when you're ready.")
 
 
 func _on_exit_entered(_body: Node) -> void:
@@ -385,11 +418,17 @@ func _build_hud(config: Dictionary) -> void:
 	hp_text.position = Vector2(290, 40)
 	hud.add_child(hp_text)
 
+	# Attack sits between HP and XP so you can watch it grow with level-ups.
+	# (In battle, this number gets added to every damaging move's power.)
+	attack_label = UiHelpers.label("", 16, Color(1.0, 0.85, 0.6))
+	attack_label.position = Vector2(20, 68)
+	hud.add_child(attack_label)
+
 	xp_bar = UiHelpers.styled_bar(Color(0.7, 0.5, 0.9), Vector2(260, 10))
-	xp_bar.position = Vector2(20, 70)
+	xp_bar.position = Vector2(20, 96)
 	hud.add_child(xp_bar)
 	xp_text = UiHelpers.label("", 13)
-	xp_text.position = Vector2(290, 64)
+	xp_text.position = Vector2(290, 90)
 	hud.add_child(xp_text)
 
 	# --- top-center: where you are ---
@@ -435,14 +474,10 @@ func _build_hud(config: Dictionary) -> void:
 	climb_bar.position = Vector2(75, 668)
 	hud.add_child(climb_bar)
 
-	# --- bottom-center: this room's hint ---
-	var hint: String = config.get("hint", "")
-	if hint != "":
-		var hint_label := UiHelpers.label(hint, 17, Color(0.95, 0.95, 0.8))
-		hint_label.custom_minimum_size = Vector2(1280, 0)
-		hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		hint_label.position = Vector2(0, 688)
-		hud.add_child(hint_label)
+	# --- bottom-right: Blurpo the guide slime delivers this room's hint ---
+	guide = GuideSlime.new()
+	hud.add_child(guide)
+	guide.say(config.get("hint", ""))
 
 	# --- pop-up announcements ("Room clear!") ---
 	toast_label = UiHelpers.label("", 28, Color(1.0, 1.0, 0.85))
@@ -460,6 +495,7 @@ func _refresh_hud() -> void:
 	hp_bar.max_value = RunManager.player_max_hp
 	hp_bar.value = RunManager.player_hp
 	hp_text.text = "%d / %d" % [RunManager.player_hp, RunManager.player_max_hp]
+	attack_label.text = "Attack: %d" % RunManager.player_attack
 	xp_bar.max_value = RunManager.xp_to_next_level()
 	xp_bar.value = RunManager.player_xp
 	xp_text.text = "XP %d / %d" % [RunManager.player_xp, RunManager.xp_to_next_level()]
@@ -469,7 +505,7 @@ func _refresh_hud() -> void:
 	for slot in loadout_labels.size():
 		if slot < RunManager.loadout.size():
 			var move := Moves.get_move(RunManager.loadout[slot])
-			loadout_labels[slot].text = "%d. %s" % [slot + 1, move.name]
+			loadout_labels[slot].text = "%d. %s · %s" % [slot + 1, move.name, move.type]
 			loadout_labels[slot].add_theme_color_override(
 				"font_color", Moves.type_color(move.type).lightened(0.35)
 			)
