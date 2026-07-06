@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">
+  <!-- PLACEHOLDER game icon: a quick green slime.
+       TODO(Isaac): replace this file with the screenshotted 3D-model icon.
+       Keep the file name "icon.svg" (or update the path in project.godot). -->
+  <rect width="128" height="128" rx="20" fill="#1b1330"/>
+  <ellipse cx="64" cy="76" rx="48" ry="40" fill="#0c0c0c"/>
+  <ellipse cx="64" cy="74" rx="41" ry="33" fill="#19e68c"/>
+  <circle cx="49" cy="68" r="6" fill="#0c0c0c"/>
+  <circle cx="80" cy="68" r="6" fill="#0c0c0c"/>
+  <circle cx="65" cy="86" r="4" fill="#0c0c0c"/>
+</svg>
