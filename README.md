@@ -1,10 +1,10 @@
 # SLIMANIA — Phase 1: the roguelike prototype
 
 You are **Goopzz**, a green slime with a wooden sword, bonking his way through
-8 rooms of red invader slimes — 5 on the beach, then 3 in the tougher
-**forest**. Die and the run restarts — that's the roguelike loop. **Blurpo**,
-the purple help slime in the corner, tells you what to do in each room.
-All art is hand-drawn by Isaac.
+11 stops: 5 beach rooms, a safe breather in **Forest Town** (free full heal!),
+then 5 tougher **forest** rooms. Die and the run restarts — that's the
+roguelike loop. **Blurpo**, the purple help slime in the corner, tells you
+what to do in each room. All art is hand-drawn by Isaac.
 
 ## How to open and run it (Godot 4)
 
@@ -28,6 +28,7 @@ that scene by itself — every scene has safe defaults, so they all work solo.
 | hold SHIFT | climb rock walls — slip back if your grip runs out! |
 | mouse or 1–4 | pick a move in battle |
 | ENTER | confirm on menus |
+| ESC | pause menu (resume / restart run / quit to title) |
 
 ## How a run works
 
@@ -39,8 +40,9 @@ that scene by itself — every scene has safe defaults, so they all work solo.
 - **Move Discs** and **healing jelly** sit on the ground in some rooms.
 - Water hurts slimes (hop over it — enemies can't follow). Swords hurt slimes
   extra. *Everyone here is a slime.* Plan accordingly.
-- 8 rooms, escalating: the beach ends with **General Wobble** (room 5), and
-  the forest ends with **Duke Mulch** (room 8). Good luck.
+- 11 stops, escalating: the beach ends with **General Wobble** (room 5),
+  **Forest Town** (room 6) is a safe rest stop that fully heals you, and the
+  forest ends with **Duke Mulch** (room 11). Good luck.
 
 ## How damage works (no secrets!)
 
@@ -99,6 +101,7 @@ scripts/
   run_manager.gd         the current run: HP, level, loadout, room list
   ui_helpers.gd          shared factories for labels/bars/buttons
   guide_slime.gd         Blurpo, the purple help slime who gives hints/tips
+  pause_menu.gd          the ESC menu (resume / restart / quit)
   player.gd              Goopzz: walking, hopping, climbing, water
   enemy.gd               red slimes: wander → chase → touch = battle
   pickup.gd              Move Discs and healing jelly

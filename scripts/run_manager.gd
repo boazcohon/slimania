@@ -41,9 +41,10 @@ var run_won: bool = false      # true when the player beats the last room
 ##  art). The playable ground starts below y=260 (above that is the top
 ##  wall). Things you can put in a room:
 ##    "title"       — shown at the top of the screen
-##    "area"        — "beach" or "forest" (picks the ground art; forest is
-##                    the tougher second half of the run)
+##    "area"        — "beach", "forest_town" or "forest" (picks the ground
+##                    art; the forest is the tougher second half of the run)
 ##    "hint"        — what Blurpo the guide slime says when you arrive
+##    "full_heal"   — true = walking in restores Goopzz to full HP (rest stop)
 ##    "enemies"     — list of {"pos", "level"} (+ "boss": true for big ones)
 ##    "pickups"     — list of {"pos", "kind"} where kind is "move" or "heal"
 ##    "water"       — list of Rect2 water pools (JUMP over them — they hurt!)
@@ -109,6 +110,20 @@ const ROOMS: Array = [
 		"water": [],
 		"climb_walls": [],
 	},
+	# ----------------------------- FOREST TOWN ------------------------------
+	# A safe rest stop between the beach and the forest. No enemies, exit
+	# always open, and walking in patches Goopzz up to full HP. (The dev team
+	# is still deciding what else lives here — a shop? a quest? Stay tuned.)
+	{
+		"title": "Forest Town",
+		"area": "forest_town",
+		"hint": "Welcome to Forest Town! You're safe here — rest up, you're back to full health. The forest ahead is MUCH meaner than the beach, so enjoy the quiet while it lasts.",
+		"enemies": [],
+		"pickups": [],
+		"water": [],
+		"climb_walls": [],
+		"full_heal": true,
+	},
 	# ------------------------------ THE FOREST ------------------------------
 	# The second-most slime-packed place in Slimania. Everything here is a
 	# level or two meaner than the beach — heal up and pick moves wisely.
@@ -125,6 +140,19 @@ const ROOMS: Array = [
 		"climb_walls": [],
 	},
 	{
+		"title": "Mushroom Grove",
+		"area": "forest",
+		"hint": "Mind the pond — hop it or go around. And grab that Move Disc before the locals do!",
+		"enemies": [
+			{"pos": Vector2(1300, 400), "level": 4},
+			{"pos": Vector2(1000, 880), "level": 4},
+			{"pos": Vector2(1650, 700), "level": 5},
+		],
+		"pickups": [{"pos": Vector2(1500, 320), "kind": "move"}],
+		"water": [Rect2(520, 560, 860, 110)],
+		"climb_walls": [],
+	},
+	{
 		"title": "Deep Woods",
 		"area": "forest",
 		"hint": "It's dark in here... these bullies hit HARD. Sand Throw makes them gentler, and Goo Shield never goes out of style.",
@@ -136,6 +164,18 @@ const ROOMS: Array = [
 		"pickups": [{"pos": Vector2(1780, 330), "kind": "move"}],
 		"water": [],
 		"climb_walls": [Rect2(950, 260, 110, 500)],
+	},
+	{
+		"title": "Tangled Thicket",
+		"area": "forest",
+		"hint": "Almost there! Weave (or climb) through the tangle — Duke Mulch's lair is just past these rocks.",
+		"enemies": [
+			{"pos": Vector2(1250, 500), "level": 5},
+			{"pos": Vector2(1550, 850), "level": 6},
+		],
+		"pickups": [{"pos": Vector2(320, 860), "kind": "heal"}],
+		"water": [],
+		"climb_walls": [Rect2(760, 260, 110, 500), Rect2(1050, 520, 110, 504)],
 	},
 	{
 		"title": "Heart of the Forest",
