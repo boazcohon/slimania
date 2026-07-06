@@ -32,17 +32,22 @@ const PLAYER_SPAWN := Vector2(200, 760)
 ## Which ground art each area uses (add new areas here — mountain, volcano...).
 const AREA_BACKDROPS: Dictionary = {
 	"beach": "beach_sand",
+	"forest_town": "forest_town_ground",
 	"forest": "forest_ground",
 }
-## The beach art has its own painted black top wall. Other areas don't, so we
-## paint one in this color (dark forest green for now).
-const FOREST_TOP_WALL_COLOR := Color(0.07, 0.16, 0.09)
+## Areas whose art has no built-in top edge get a painted top wall in this
+## color. (Beach art has its black band; the town art has its row of huts.)
+const AREA_TOP_WALL_PAINT: Dictionary = {
+	"forest": Color(0.07, 0.16, 0.09),
+}
 
 var player: Player
 var enemies_left := 0
 var exit_open := false
 var battle_cooldown := 0.0    # grace period so battles don't chain instantly
 var room_wall_rects: Array = []
+var pause_menu: PauseMenu
+var active_battle: BattleScreen = null  # so the pause menu can freeze it
 
 # HUD pieces we refresh every frame.
 var hud: CanvasLayer
@@ -75,6 +80,15 @@ func _ready() -> void:
 	_build_enemies(config)
 	_build_pickups(config)
 	_build_hud(config)
+	_build_pause_menu()
+
+	# Rest-stop rooms (like Forest Town) patch Goopzz up to full HP.
+	if config.get("full_heal", false):
+		RunManager.player_hp = RunManager.player_max_hp
+	# A room with nothing to fight starts with its exit already open.
+	if enemies_left == 0:
+		_open_exit(false)
+
 	_toast("Room %d/%d — %s" % [RunManager.current_room, RunManager.total_rooms(), config.title])
 
 
@@ -96,17 +110,18 @@ func _build_backdrop(config: Dictionary) -> void:
 		backdrop.scale = ROOM_SIZE / texture_size
 	add_child(backdrop)
 
-	# Beach art comes with its own painted top wall (the black band). For any
-	# other area we paint the visible top wall ourselves, Among-Us style.
-	if area != "beach":
+	# Some areas' art already shows its own top edge (the beach's black band,
+	# the town's row of huts). The rest get a painted top wall, Among-Us style.
+	if AREA_TOP_WALL_PAINT.has(area):
+		var wall_color: Color = AREA_TOP_WALL_PAINT[area]
 		var top_wall := ColorRect.new()
-		top_wall.color = FOREST_TOP_WALL_COLOR
+		top_wall.color = wall_color
 		top_wall.size = Vector2(ROOM_SIZE.x, TOP_WALL_HEIGHT)
 		top_wall.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(top_wall)
 		# A lighter strip along its base — the faux-3D "sunlit edge".
 		var edge := ColorRect.new()
-		edge.color = FOREST_TOP_WALL_COLOR.lightened(0.3)
+		edge.color = wall_color.lightened(0.3)
 		edge.position = Vector2(0, TOP_WALL_HEIGHT - 14)
 		edge.size = Vector2(ROOM_SIZE.x, 14)
 		edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -330,9 +345,11 @@ func _on_enemy_touched_player(enemy: EnemySlime) -> void:
 	battle.setup(enemy.stats)
 	battle.finished.connect(_on_battle_finished.bind(enemy))
 	add_child(battle)
+	active_battle = battle
 
 
 func _on_battle_finished(won: bool, enemy: Node) -> void:
+	active_battle = null
 	get_tree().paused = false
 	battle_cooldown = 1.5
 	if won:
@@ -346,12 +363,13 @@ func _on_battle_finished(won: bool, enemy: Node) -> void:
 		_end_run()
 
 
-func _open_exit() -> void:
+func _open_exit(announce: bool = true) -> void:
 	exit_open = true
 	exit_gate.queue_free()
 	exit_sign.add_theme_color_override("font_color", Color(0.5, 1.0, 0.6))
-	_toast("Room clear! The exit is open →")
-	guide.say("Room clear! Head through the exit on the right when you're ready.")
+	if announce:
+		_toast("Room clear! The exit is open →")
+		guide.say("Room clear! Head through the exit on the right when you're ready.")
 
 
 func _on_exit_entered(_body: Node) -> void:
@@ -375,6 +393,28 @@ func _on_player_died() -> void:
 func _end_run() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/game_over.tscn")
+
+
+# ============================ pause menu ============================
+
+func _build_pause_menu() -> void:
+	pause_menu = PauseMenu.new()
+	add_child(pause_menu)
+	pause_menu.menu_opened.connect(_on_pause_menu_opened)
+	pause_menu.menu_closed.connect(_on_pause_menu_closed)
+
+
+## Battles deliberately ignore the engine's pause (that's how they run on top
+## of the frozen overworld) — so when the pause menu opens mid-battle, we
+## switch the battle off entirely, and back on when the menu closes.
+func _on_pause_menu_opened() -> void:
+	if active_battle != null and is_instance_valid(active_battle):
+		active_battle.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+func _on_pause_menu_closed() -> void:
+	if active_battle != null and is_instance_valid(active_battle):
+		active_battle.process_mode = Node.PROCESS_MODE_ALWAYS
 
 
 # ============================ pickups ============================

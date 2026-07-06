@@ -34,10 +34,10 @@ const PATHS: Dictionary = {
 	"beach_sand": "res://slimania assets/terrain/areas/beach/beach sand normal full rez 2d.png",
 	"beach_scene": "res://slimania assets/terrain/areas/beach/ground.png",
 	"forest_ground": "res://slimania assets/terrain/areas/forest/forest grassy ground.png",
+	"forest_town_ground": "res://slimania assets/terrain/areas/forest/forest town.png",
 
 	# --- Logos ------------------------------------------------------------------
-	"logo_invaded": "res://slimania assets/logo/1/slimania invaded.png",
-	"logo_small": "res://slimania assets/logo/2 textures/slimania logo.png",
+	"logo": "res://slimania assets/logo/slimania logo.png",
 	"skybox": "res://slimania assets/logo/2 textures/skybox.png",
 }
 

@@ -19,13 +19,13 @@ func _ready() -> void:
 	backdrop.modulate = Color(0.45, 0.45, 0.55)
 	add_child(backdrop)
 
-	# The big logo.
+	# The big logo (16:9 art, so a taller box than the old banner).
 	var logo := TextureRect.new()
-	logo.texture = SpritePaths.tex("logo_invaded")
+	logo.texture = SpritePaths.tex("logo")
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	logo.size = Vector2(880, 240)
-	logo.position = Vector2((1280.0 - 880.0) / 2.0, 70)
+	logo.size = Vector2(600, 338)
+	logo.position = Vector2((1280.0 - 600.0) / 2.0, 20)
 	add_child(logo)
 
 	# Goopzz himself, saying hi from the corner.
@@ -46,14 +46,14 @@ func _ready() -> void:
 	)
 	story.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	story.custom_minimum_size = Vector2(1280, 0)
-	story.position = Vector2(0, 350)
+	story.position = Vector2(0, 378)
 	add_child(story)
 
 	# Blinking "press enter".
 	var press := UiHelpers.label("—  PRESS ENTER TO START A RUN  —", 26, Color(0.75, 1.0, 0.8))
 	press.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	press.custom_minimum_size = Vector2(1280, 0)
-	press.position = Vector2(0, 500)
+	press.position = Vector2(0, 508)
 	add_child(press)
 	var blink := create_tween().set_loops()
 	blink.tween_property(press, "modulate:a", 0.25, 0.6)
@@ -62,7 +62,7 @@ func _ready() -> void:
 	# Controls cheat-sheet.
 	var controls := UiHelpers.label(
 		"WASD / arrows — move      SPACE — hop over water      hold SHIFT — climb rocks\n" +
-		"in battle: click a move, or press 1–4",
+		"in battle: click a move, or press 1–4      ESC — pause",
 		16, Color(0.8, 0.8, 0.85)
 	)
 	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
