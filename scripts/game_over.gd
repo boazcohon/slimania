@@ -9,11 +9,13 @@ extends Control
 ## Rotating tips Blurpo shares after a defeat — add your own!
 const TIPS: Array = [
 	"Tip: slimes are weak to swords. Good thing you HAVE one.",
-	"Tip: Goo Shield right before a boss's turn cuts the hit in half.",
+	"Tip: BLOCK soaks damage before your HP does — shield up before big hits!",
 	"Tip: you can hop OVER water with SPACE. Enemies can't follow you!",
-	"Tip: Battle Cry stacks — two cries, double the fury.",
+	"Tip: Battle Cry lasts the whole battle — yell early, bonk often.",
 	"Tip: enemies are slower than you. Sometimes running away IS the plan.",
-	"Tip: Move Discs on the sand teach brand-new moves. Grab them!",
+	"Tip: Move Discs on the ground teach brand-new moves. Grab them!",
+	"Tip: water moves splash EVERY enemy — perfect when a slime brings a pal.",
+	"Tip: cheap 1-gel moves let you do more things each turn. Gels go fast!",
 ]
 
 

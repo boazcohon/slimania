@@ -33,10 +33,16 @@ that scene by itself — every scene has safe defaults, so they all work solo.
 ## How a run works
 
 - Each room: defeat every red slime (walk into one to start a turn-based
-  battle), then leave through the exit gate on the right.
-- Winning a battle gives XP (level-ups = more HP and attack) **and** a
-  pick-1-of-3 new move. You carry **4 moves** — learning a 5th means
-  forgetting one, Pokémon-style.
+  battle), then leave through the exit gate on the right. Watch out —
+  deeper rooms give slimes better odds of bringing a **pal** (a 2-on-1 duo
+  battle; the pair walks around together, so you'll see it coming).
+- In battle you spend **GELS**: 4 per turn, each move usable once per turn,
+  no carry-over. Play as many moves as you can afford, then **End Turn** —
+  then every living enemy swings back. **BLOCK** (from Goo Shield/Armor)
+  soaks damage before your HP and melts at the start of your next turn.
+- Winning a battle gives XP for every enemy beaten (level-ups = more HP and
+  attack) **and** a pick-1-of-3 new move. You carry **4 moves** — learning a
+  5th means forgetting one, Pokémon-style.
 - **Move Discs** and **healing jelly** sit on the ground in some rooms.
 - Water hurts slimes (hop over it — enemies can't follow). Swords hurt slimes
   extra. *Everyone here is a slime.* Plan accordingly.
@@ -49,14 +55,18 @@ that scene by itself — every scene has safe defaults, so they all work solo.
 Every hit is `(move power + attacker's ATTACK) × type bonus × a little luck`:
 
 - Your **ATTACK** stat (shown under your HP, and next to your name in battle)
-  is added to every damaging move. It grows +1 per level, +3 per Battle Cry.
-- **Type bonus**: sword moves ×1.5, water ×1.25 — slimes hate both.
+  is added to every damaging move. It grows +1 per level, more with Battle
+  Cry (+2) or Rebel Yell (+5).
+- **Type bonus**: sword moves hit ×1.5 — slimes hate swords. Water moves hit
+  at normal strength but splash **every** enemy, which is why you want one
+  when a duo shows up.
 - **Luck**: every hit is randomly wiggled between 85% and 115%.
-- A **Goo Shield** halves the next hit you take. Sand Throw lowers the
-  enemy's ATTACK instead.
+- **BLOCK** (Goo Shield +8, Goo Armor +18) soaks incoming damage before HP
+  and expires when your next turn starts. Sand Throw / Sandstorm lower every
+  enemy's ATTACK for the whole battle.
 
-In battle, each move button shows its type and the *real* number range it
-would do this turn, recalculated live as buffs come and go.
+In battle, each move button shows its gel cost, its type, and the *real*
+number range it would do this turn, recalculated live as buffs come and go.
 
 ## The easiest things to tweak first
 
