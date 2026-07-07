@@ -15,7 +15,7 @@ extends Area2D
 
 signal collected(pickup: Pickup)
 
-const HEAL_AMOUNT := 20  # HP restored by a "heal" pickup
+const HEAL_AMOUNT := 25  # HP restored by a "heal" pickup
 
 var kind := "move"  # set by overworld.gd right after instantiating
 

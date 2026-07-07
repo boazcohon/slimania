@@ -19,9 +19,12 @@ extends Node
 const PLAYER_BASE_MAX_HP: int = 40    # Goopzz's HP at the start of a run
 const PLAYER_BASE_ATTACK: int = 3     # added to every damaging move's power
 const XP_PER_LEVEL: int = 25          # XP needed = 25 x your current level
-const LEVEL_UP_HP_BONUS: int = 6      # max HP gained per level
+const LEVEL_UP_HP_BONUS: int = 10     # max HP gained per level (fights are a
+                                      # damage race — your HP pool must grow!)
 const LEVEL_UP_ATTACK_BONUS: int = 1  # attack gained per level
-const ROOM_CLEAR_HEAL: int = 8        # free HP for reaching the next room
+const ROOM_CLEAR_HEAL_PERCENT: float = 0.35  # between rooms Goopzz recovers
+                                      # 35% of his MISSING HP — hurt more,
+                                      # heal more, but never a full reset
 
 # ------------------------- current run state -------------------------
 var player_level: int = 1
@@ -33,6 +36,8 @@ var loadout: Array = []        # the four equipped move ids
 var current_room: int = 1      # 1-based: Room 1 is the first room
 var battles_won: int = 0
 var run_won: bool = false      # true when the player beats the last room
+var first_disc_taken: bool = false  # the run's 1st Move Disc guarantees a
+                                    # defensive option (see moves.gd)
 
 
 ## ============================================================================
@@ -221,6 +226,7 @@ func start_new_run() -> void:
 	current_room = 1
 	battles_won = 0
 	run_won = false
+	first_disc_taken = false
 
 
 func room_config() -> Dictionary:
@@ -238,8 +244,10 @@ func is_last_room() -> bool:
 ## Move on to the next room (called when Goopzz walks through the exit).
 func advance_room() -> void:
 	current_room += 1
-	# A little breather heal as a reward for clearing the room.
-	player_hp = mini(player_hp + ROOM_CLEAR_HEAL, player_max_hp)
+	# Recover a slice of whatever HP is missing. A percentage scales with the
+	# run (and with mistakes) — but it never quite erases a beating.
+	var missing_hp := player_max_hp - player_hp
+	player_hp = mini(player_hp + int(ceil(missing_hp * ROOM_CLEAR_HEAL_PERCENT)), player_max_hp)
 
 
 ## How much XP is needed to go from the current level to the next one.
@@ -289,7 +297,9 @@ func make_enemy_stats(level: int, is_boss: bool = false) -> Dictionary:
 		# HP is beefy because Goopzz can now play SEVERAL moves per turn
 		# (the gel system) — fights should still last a few turns.
 		"max_hp": 20 + level * 10,
-		"attack": 1 + level * 2,
+		# Attack grows gently: battles are a damage RACE, and Goopzz's HP
+		# pool (plus between-room recovery) is what he races with.
+		"attack": 1 + level,
 		"moves": enemy_moves,
 		"xp": 10 + level * 5,
 		"sprite_scale": 1.0 + (level - 1) * 0.06,  # higher level = slightly bigger

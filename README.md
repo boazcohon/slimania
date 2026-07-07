@@ -40,6 +40,10 @@ that scene by itself — every scene has safe defaults, so they all work solo.
   no carry-over. Play as many moves as you can afford, then **End Turn** —
   then every living enemy swings back. **BLOCK** (from Goo Shield/Armor)
   soaks damage before your HP and melts at the start of your next turn.
+- Battles are a **race**: enemies announce their next move above their heads
+  ("Next: Big Slam 16–22"), so you decide each turn whether to block the big
+  hit or out-damage them. Moves tagged **[1x]** work once per battle —
+  emergency buttons, not habits. You recover 35% of missing HP between rooms.
 - Winning a battle gives XP for every enemy beaten (level-ups = more HP and
   attack) **and** a pick-1-of-3 new move. You carry **4 moves** — learning a
   5th means forgetting one, Pokémon-style.
@@ -56,14 +60,17 @@ Every hit is `(move power + attacker's ATTACK) × type bonus × a little luck`:
 
 - Your **ATTACK** stat (shown under your HP, and next to your name in battle)
   is added to every damaging move. It grows +1 per level, more with Battle
-  Cry (+2) or Rebel Yell (+5).
+  Cry (+2) or Rebel Yell (+5). Enemy attack is `1 + level`.
 - **Type bonus**: sword moves hit ×1.5 — slimes hate swords. Water moves hit
   at normal strength but splash **every** enemy, which is why you want one
   when a duo shows up.
-- **Luck**: every hit is randomly wiggled between 85% and 115%.
-- **BLOCK** (Goo Shield +8, Goo Armor +18) soaks incoming damage before HP
-  and expires when your next turn starts. Sand Throw / Sandstorm lower every
-  enemy's ATTACK for the whole battle.
+- **Luck**: every hit is randomly wiggled between 85% and 115% — and enemy
+  intent labels show that exact range before you commit to anything.
+- **BLOCK** (Goo Shield +8 repeatable, Goo Armor +20 once per battle) soaks
+  incoming damage before HP and expires when your next turn starts. Healing
+  is limited too: Slime Snack and Royal Jelly are once per battle, while
+  Slurp Slash (lifesteal) and Jelly Roll (heal+block) give smaller sustain
+  you can weave into attacking turns.
 
 In battle, each move button shows its gel cost, its type, and the *real*
 number range it would do this turn, recalculated live as buffs come and go.

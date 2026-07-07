@@ -44,6 +44,7 @@ var player_attack_bonus := 0       # from Battle Cry / Rebel Yell
 var player_block := 0              # soaks damage until your next turn
 var gels_left := 0
 var moves_used_this_turn: Array = []
+var moves_used_this_battle: Array = []  # for "once_per_battle" moves
 var busy := true                   # true while animations play (input locked)
 var awaiting_target := false       # true while we wait for a target click
 var pending_move_id := ""
@@ -61,6 +62,7 @@ var enemy_sprites: Array = []
 var enemy_name_labels: Array = []
 var enemy_hp_bars: Array = []
 var enemy_hp_texts: Array = []
+var intent_labels: Array = []      # "Next: Chomp 11-15" floating over enemies
 var target_buttons: Array = []
 var move_buttons: Array = []
 var gel_pips: Array = []
@@ -177,6 +179,16 @@ func _build_ui() -> void:
 		add_child(target)
 		target_buttons.append(target)
 
+		# The INTENT label: this slime announces its next move up here, with
+		# the same honest numbers the player's buttons get. No surprises.
+		var intent_label := UiHelpers.label("", 15, Color(1.0, 0.95, 0.6))
+		intent_label.custom_minimum_size = Vector2(240, 0)
+		intent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var half_height := 256.0 * base_scale * float(enemies[i].get("sprite_scale", 1.0))
+		intent_label.position = home - Vector2(120, half_height + 46)
+		add_child(intent_label)
+		intent_labels.append(intent_label)
+
 	# --- Goopzz ---
 	goopzz_sprite = Sprite2D.new()
 	goopzz_sprite.texture = SpritePaths.tex("goopzz")
@@ -270,16 +282,21 @@ func _build_ui() -> void:
 
 # ============================ live UI updates ============================
 
-## What one damaging move would REALLY do right now, before the random
-## wiggle: (power + your attack + any Battle Cry bonus) x type multiplier.
-## Returns the lowest and highest possible hit as (x, y).
-func _damage_range(move: Dictionary) -> Vector2i:
-	var base := float(int(move.get("power", 0)) + RunManager.player_attack + player_attack_bonus)
+## What one damaging move would REALLY do, before the random wiggle:
+## (power + attacker's attack) x type multiplier, as a (lowest, highest) pair.
+## Used for the player's buttons AND the enemies' intent labels.
+func _move_damage_range(move: Dictionary, attacker_attack: int) -> Vector2i:
+	var base := float(int(move.get("power", 0)) + attacker_attack)
 	base *= float(Moves.TYPE_MULTIPLIER.get(move.get("type", "slime"), 1.0))
 	return Vector2i(
 		maxi(1, int(round(base * DAMAGE_WIGGLE_LOW))),
 		maxi(1, int(round(base * DAMAGE_WIGGLE_HIGH)))
 	)
+
+
+## The player's version — includes Goopzz's attack and any buffs.
+func _damage_range(move: Dictionary) -> Vector2i:
+	return _move_damage_range(move, RunManager.player_attack + player_attack_bonus)
 
 
 ## Two lines per button: "1. Sword Slash [2 gel]" then what it will actually
@@ -305,23 +322,36 @@ func _update_move_buttons() -> void:
 			"damage_recoil":
 				var hit := _damage_range(move)
 				detail += " · %d-%d dmg, %d recoil" % [hit.x, hit.y, int(move.get("recoil", 0))]
+			"damage_lifesteal":
+				var hit := _damage_range(move)
+				detail += " · %d-%d dmg, heal half back" % [hit.x, hit.y]
 			"heal":
 				detail += " · heal %d HP" % int(move.get("power", 0))
 			"block":
 				detail += " · block %d dmg" % int(move.get("power", 0))
+			"heal_block":
+				detail += " · heal %d + block %d" % [int(move.get("power", 0)), int(move.get("power", 0))]
 			"buff_attack":
 				detail += " · your attack +%d" % int(move.get("power", 0))
 			"debuff_attack":
 				detail += " · ALL enemies attack -%d" % int(move.get("power", 0))
-		move_buttons[slot].text = "%d. %s  [%d gel]\n%s" % [slot + 1, move.name, cost, detail]
+		var cost_tag := "%d gel" % cost
+		if move.get("once_per_battle", false):
+			cost_tag += ", 1x"
+			if moves_used_this_battle.has(move_id):
+				detail = "already used this battle!"
+		move_buttons[slot].text = "%d. %s  [%s]\n%s" % [slot + 1, move.name, cost_tag, detail]
 		move_buttons[slot].disabled = busy or not _move_is_playable(move_id)
 
 
-## Can this move be used right now? (not already used, and affordable)
+## Can this move be used right now? (not used up, and affordable)
 func _move_is_playable(move_id: String) -> bool:
+	var move := Moves.get_move(move_id)
 	if moves_used_this_turn.has(move_id):
 		return false
-	return int(Moves.get_move(move_id).get("cost", 1)) <= gels_left
+	if move.get("once_per_battle", false) and moves_used_this_battle.has(move_id):
+		return false
+	return int(move.get("cost", 1)) <= gels_left
 
 
 func _any_move_playable() -> bool:
@@ -359,6 +389,35 @@ func _refresh_ui() -> void:
 		if int(enemy.get("hp", 0)) <= 0:
 			enemy_name_labels[i].modulate = Color(1, 1, 1, 0.4)
 			enemy_hp_texts[i].text = "puddle'd"
+	_refresh_intent_labels()
+
+
+## Redraw every enemy's "Next: ..." label from its declared intent. Rendered
+## fresh each refresh so the numbers stay honest — if you Sandstorm them,
+## the announced damage drops right away.
+func _refresh_intent_labels() -> void:
+	for i in enemies.size():
+		var enemy: Dictionary = enemies[i]
+		var intent_id: String = str(enemy.get("intent_id", ""))
+		if int(enemy.get("hp", 0)) <= 0 or intent_id == "":
+			intent_labels[i].text = ""
+			continue
+		var move := Moves.get_move(intent_id)
+		if move.get("effect", "damage") == "buff_attack":
+			intent_labels[i].text = "Next: %s — powering up!" % move.name
+		else:
+			var attack: int = maxi(0, int(enemy.get("attack", 0)) + int(enemy.get("atk_bonus", 0)))
+			var hit := _move_damage_range(move, attack)
+			intent_labels[i].text = "Next: %s %d-%d" % [move.name, hit.x, hit.y]
+
+
+## Every living enemy picks (and announces) its next move. Called at the
+## start of the player's turn — that's what makes block a smart choice
+## instead of a guess.
+func _declare_intents() -> void:
+	for i in _alive_indexes():
+		enemies[i]["intent_id"] = enemies[i].moves.pick_random()
+	_refresh_intent_labels()
 
 
 func _say(text: String) -> void:
@@ -405,6 +464,7 @@ func _begin_player_turn() -> void:
 	player_block = 0  # yesterday's goo wall melts at sunrise
 	gels_left = Moves.GELS_PER_TURN
 	moves_used_this_turn = []
+	_declare_intents()  # enemies announce their plans — read them!
 	busy = false
 	end_turn_button.disabled = false
 	_update_move_buttons()
@@ -489,6 +549,7 @@ func _play_move(move_id: String, target_index: int) -> void:
 	var move := Moves.get_move(move_id)
 	gels_left -= int(move.get("cost", 1))
 	moves_used_this_turn.append(move_id)
+	moves_used_this_battle.append(move_id)
 	_refresh_ui()
 
 	_say("Goopzz used %s!" % move.name)
@@ -524,6 +585,13 @@ func _play_move(move_id: String, target_index: int) -> void:
 			RunManager.player_hp = maxi(0, RunManager.player_hp - recoil)
 			_say("Whoa — dizzy! Goopzz took %d recoil damage." % recoil)
 			await _flash(goopzz_sprite)
+		"damage_lifesteal":
+			var dealt: int = await _hit_enemy(move, target_index)
+			var slurped := mini(int(ceil(dealt / 2.0)),
+				RunManager.player_max_hp - RunManager.player_hp)
+			RunManager.player_hp += slurped
+			_say("Slurp! Goopzz drank back %d HP!" % slurped)
+			await _sparkle(goopzz_sprite)
 		"heal":
 			var healed := mini(int(move.get("power", 0)),
 				RunManager.player_max_hp - RunManager.player_hp)
@@ -533,6 +601,13 @@ func _play_move(move_id: String, target_index: int) -> void:
 		"block":
 			player_block += int(move.get("power", 0))
 			_say("Goopzz puffed up! BLOCK %d — it soaks hits until your next turn." % player_block)
+			await _sparkle(goopzz_sprite)
+		"heal_block":
+			var amount := int(move.get("power", 0))
+			var patched := mini(amount, RunManager.player_max_hp - RunManager.player_hp)
+			RunManager.player_hp += patched
+			player_block += amount
+			_say("Tuck and roll! +%d HP and BLOCK %d." % [patched, player_block])
 			await _sparkle(goopzz_sprite)
 		"buff_attack":
 			player_attack_bonus += int(move.get("power", 0))
@@ -566,7 +641,8 @@ func _play_move(move_id: String, target_index: int) -> void:
 
 
 ## One damaging hit against one enemy, with flash + shake + weakness quips.
-func _hit_enemy(move: Dictionary, index: int) -> void:
+## Returns the damage dealt (Slurp Slash heals from it).
+func _hit_enemy(move: Dictionary, index: int) -> int:
 	var enemy: Dictionary = enemies[index]
 	var damage := _calc_damage(move, RunManager.player_attack + player_attack_bonus)
 	enemy.hp = maxi(0, int(enemy.hp) - damage)
@@ -580,6 +656,7 @@ func _hit_enemy(move: Dictionary, index: int) -> void:
 	await _flash(enemy_sprites[index])
 	if int(enemy.hp) <= 0:
 		await _melt_enemy(index)
+	return damage
 
 
 ## A beaten slime dramatically dissolves into puddle goo.
@@ -608,7 +685,12 @@ func _enemy_phase() -> void:
 
 func _do_enemy_move(index: int) -> void:
 	var enemy: Dictionary = enemies[index]
-	var move := Moves.get_move(enemy.moves.pick_random())
+	# Do exactly what was announced (falling back to random just in case).
+	var intent_id: String = str(enemy.get("intent_id", ""))
+	if intent_id == "":
+		intent_id = enemy.moves.pick_random()
+	var move := Moves.get_move(intent_id)
+	enemy["intent_id"] = ""  # promise fulfilled — label clears on refresh
 	_say("%s used %s!" % [enemy.get("name", "???"), move.name])
 	var sprite: Sprite2D = enemy_sprites[index]
 	sprite.texture = SpritePaths.tex("enemy_slime_attacking")
