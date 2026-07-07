@@ -115,6 +115,8 @@ func _make_move_card(move_id: String) -> Control:
 	]
 	if move.get("effect", "") == "multi_hit":
 		stats_line += "  x%d hits" % int(move.get("hits", 2))
+	if move.get("once_per_battle", false):
+		stats_line += "  ·  1x per battle"
 	var info := UiHelpers.label(stats_line, 14, Color(0.85, 0.85, 0.85))
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(info)

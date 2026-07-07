@@ -21,15 +21,20 @@ extends Node
 ##  can be used once per turn, and leftover gels do NOT carry over. Spend
 ##  them well, then End Turn.
 ##
+##  A move with "once_per_battle": true can only be used ONE time in each
+##  battle — emergency buttons, not every-turn habits.
+##
 ##  Effects the battle system understands:
-##      "damage"        — hit one slime (WATER-type damage hits ALL enemies!)
-##      "multi_hit"     — hit one slime several times (needs a "hits" number)
-##      "damage_recoil" — big hit, but you take "recoil" damage yourself
-##      "heal"          — restore "power" HP
-##      "block"         — gain "power" BLOCK: it soaks damage until your next
-##                        turn starts, then melts away
-##      "buff_attack"   — your attacks get +"power" for this battle
-##      "debuff_attack" — ALL enemies' attacks get -"power" for this battle
+##      "damage"           — hit one slime (WATER-type damage hits ALL enemies!)
+##      "multi_hit"        — hit one slime several times (needs a "hits" number)
+##      "damage_recoil"    — big hit, but you take "recoil" damage yourself
+##      "damage_lifesteal" — hit one slime, then heal back half the damage dealt
+##      "heal"             — restore "power" HP
+##      "block"            — gain "power" BLOCK: it soaks damage until your
+##                           next turn starts, then melts away
+##      "heal_block"       — restore "power" HP AND gain "power" block
+##      "buff_attack"      — your attacks get +"power" for this battle
+##      "debuff_attack"    — ALL enemies' attacks get -"power" for this battle
 ## ============================================================================
 
 ## THE RULE OF SLIMANIA: everyone is a slime, and slimes are weak to swords.
@@ -65,8 +70,9 @@ const ALL_MOVES: Dictionary = {
 		"description": "Puff up into a wall of goo. Blocks 8 damage until your next turn.",
 	},
 	"slime_snack": {
-		"name": "Slime Snack", "type": "support", "cost": 1, "effect": "heal", "power": 10,
-		"description": "Munch an emergency snack. Restores 10 HP.",
+		"name": "Slime Snack", "type": "support", "cost": 1, "effect": "heal", "power": 12,
+		"once_per_battle": true,
+		"description": "Munch THE emergency snack. Restores 12 HP. You only packed one!",
 	},
 
 	# ------------------- Findable / reward moves -------------------
@@ -97,8 +103,9 @@ const ALL_MOVES: Dictionary = {
 		"description": "Spin with the sword! Huge damage, but you get dizzy (4 recoil damage).",
 	},
 	"royal_jelly": {
-		"name": "Royal Jelly", "type": "support", "cost": 2, "effect": "heal", "power": 22,
-		"description": "Fancy healing jelly fit for a king. Restores 22 HP.",
+		"name": "Royal Jelly", "type": "support", "cost": 2, "effect": "heal", "power": 20,
+		"once_per_battle": true,
+		"description": "Fancy healing jelly fit for a king. Restores 20 HP — once per battle.",
 	},
 	"tsunami": {
 		"name": "Tsunami", "type": "water", "cost": 4, "effect": "damage", "power": 12,
@@ -113,8 +120,17 @@ const ALL_MOVES: Dictionary = {
 		"description": "A whole BEACH of sand, airborne. Every enemy hits much softer.",
 	},
 	"goo_armor": {
-		"name": "Goo Armor", "type": "support", "cost": 2, "effect": "block", "power": 18,
-		"description": "Goo Shield's big sibling. Blocks 18 damage until your next turn.",
+		"name": "Goo Armor", "type": "support", "cost": 2, "effect": "block", "power": 20,
+		"once_per_battle": true,
+		"description": "Goo Shield's big sibling. Blocks 20 damage — save it for the REALLY big hit.",
+	},
+	"slurp_slash": {
+		"name": "Slurp Slash", "type": "sword", "cost": 2, "effect": "damage_lifesteal", "power": 6,
+		"description": "Slice a slime and slurp up the splatter. Heals half the damage dealt!",
+	},
+	"jelly_roll": {
+		"name": "Jelly Roll", "type": "support", "cost": 1, "effect": "heal_block", "power": 6,
+		"description": "Tuck and roll! A little heal AND a little block. Flexible.",
 	},
 	"pointy_stick": {
 		"name": "Pointy Stick", "type": "sword", "cost": 1, "effect": "damage", "power": 4,
@@ -152,8 +168,12 @@ const REWARD_POOL: Array = [
 	"double_bounce", "splash", "battle_cry", "sand_throw",
 	"mega_bonk", "sword_spin", "royal_jelly",
 	"tsunami", "rebel_yell", "sandstorm", "goo_armor",
-	"pointy_stick", "belly_flop",
+	"pointy_stick", "belly_flop", "slurp_slash", "jelly_roll",
 ]
+
+## Moves that help you SURVIVE. The first Move Disc of every run guarantees
+## at least one of these among its choices, so no run is doomed by bad luck.
+const DEFENSIVE_MOVES: Array = ["royal_jelly", "goo_armor", "jelly_roll", "sandstorm"]
 
 ## How many moves Goopzz can carry at once (Pokemon-style four slots).
 const MAX_LOADOUT_SIZE: int = 4
@@ -186,3 +206,21 @@ func random_reward_choices(count: int, exclude: Array) -> Array:
 			options.append(id)
 	options.shuffle()
 	return options.slice(0, count)
+
+
+## Like random_reward_choices, but guarantees at least one DEFENSIVE move is
+## among the options (used for the first Move Disc of a run).
+func reward_choices_with_defense(count: int, exclude: Array) -> Array:
+	var choices := random_reward_choices(count, exclude)
+	for id in choices:
+		if DEFENSIVE_MOVES.has(id):
+			return choices  # luck already provided one
+	var defensive_options: Array = []
+	for id in DEFENSIVE_MOVES:
+		if not exclude.has(id):
+			defensive_options.append(id)
+	if defensive_options.is_empty() or choices.is_empty():
+		return choices
+	# Swap one random choice out for a random defensive move.
+	choices[randi() % choices.size()] = defensive_options.pick_random()
+	return choices

@@ -433,7 +433,14 @@ func _on_pickup_collected(pickup: Pickup) -> void:
 		pickup.queue_free()
 	else:
 		pickup.queue_free()
-		var choices := Moves.random_reward_choices(3, RunManager.loadout)
+		var choices: Array
+		if RunManager.first_disc_taken:
+			choices = Moves.random_reward_choices(3, RunManager.loadout)
+		else:
+			# The run's FIRST disc always offers at least one defensive move,
+			# so bad luck can't leave a whole run with no way to survive.
+			RunManager.first_disc_taken = true
+			choices = Moves.reward_choices_with_defense(3, RunManager.loadout)
 		if choices.is_empty():
 			_toast("You already know every move! (+10 XP instead)")
 			RunManager.add_xp(10)
