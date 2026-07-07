@@ -24,6 +24,13 @@ extends Node
 ##  A move with "once_per_battle": true can only be used ONE time in each
 ##  battle — emergency buttons, not every-turn habits.
 ##
+##  Attacks can also set two OPTIONAL chance fields:
+##      "crit_chance" — odds (0-1) of a CRITICAL HIT dealing 1.5x damage.
+##                      Default is 10% (BASE_CRIT_CHANCE). Bonk moves get 25%!
+##      "accuracy"    — odds (0-1) the attack lands at all. Default is 100%
+##                      (BASE_ACCURACY); nothing misses right now, but any
+##                      move can trade accuracy for power later.
+##
 ##  Effects the battle system understands:
 ##      "damage"           — hit one slime (WATER-type damage hits ALL enemies!)
 ##      "multi_hit"        — hit one slime several times (needs a "hits" number)
@@ -47,6 +54,15 @@ const TYPE_MULTIPLIER: Dictionary = {
 	"support": 1.0,
 }
 
+## Critical hits: every attack has this chance to land 1.5x damage.
+## (1.5x — not 2x — so a crit stings without completely breaking the numbers
+## the intent labels promised. One knob to change if you want spicier crits.)
+const BASE_CRIT_CHANCE: float = 0.10
+const CRIT_MULTIPLIER: float = 1.5
+
+## Attacks land 100% of the time unless a move says otherwise.
+const BASE_ACCURACY: float = 1.0
+
 ## Colors used for move buttons and cards, one per move type.
 const TYPE_COLORS: Dictionary = {
 	"slime": Color(0.18, 0.65, 0.35),
@@ -59,7 +75,8 @@ const ALL_MOVES: Dictionary = {
 	# ------------------- Goopzz's starting four -------------------
 	"bonk": {
 		"name": "Bonk", "type": "slime", "cost": 1, "effect": "damage", "power": 5,
-		"description": "A friendly headbutt. Reliable, like a good sandwich.",
+		"crit_chance": 0.25,
+		"description": "A friendly headbutt with sneaky-good aim. Crits 25% of the time!",
 	},
 	"sword_slash": {
 		"name": "Sword Slash", "type": "sword", "cost": 2, "effect": "damage", "power": 7,
@@ -95,7 +112,8 @@ const ALL_MOVES: Dictionary = {
 	},
 	"mega_bonk": {
 		"name": "Mega Bonk", "type": "slime", "cost": 3, "effect": "damage", "power": 14,
-		"description": "Like Bonk, but MEGA.",
+		"crit_chance": 0.25,
+		"description": "Like Bonk, but MEGA — same sneaky 25% crit chance, way more bonk.",
 	},
 	"sword_spin": {
 		"name": "Sword Spin", "type": "sword", "cost": 3, "effect": "damage_recoil",
@@ -129,7 +147,7 @@ const ALL_MOVES: Dictionary = {
 		"description": "Slice a slime and slurp up the splatter. Heals half the damage dealt!",
 	},
 	"jelly_roll": {
-		"name": "Jelly Roll", "type": "support", "cost": 1, "effect": "heal_block", "power": 6,
+		"name": "Jelly Roll", "type": "support", "cost": 1, "effect": "heal_block", "power": 4,
 		"description": "Tuck and roll! A little heal AND a little block. Flexible.",
 	},
 	"pointy_stick": {

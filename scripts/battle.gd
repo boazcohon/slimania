@@ -335,6 +335,14 @@ func _update_move_buttons() -> void:
 				detail += " · your attack +%d" % int(move.get("power", 0))
 			"debuff_attack":
 				detail += " · ALL enemies attack -%d" % int(move.get("power", 0))
+		# Attacks advertise unusual luck: a juiced crit chance, or shaky aim.
+		if move.get("effect", "damage") in ["damage", "multi_hit", "damage_recoil", "damage_lifesteal"]:
+			var crit_chance := float(move.get("crit_chance", Moves.BASE_CRIT_CHANCE))
+			if crit_chance > Moves.BASE_CRIT_CHANCE:
+				detail += " · %d%% crit!" % int(round(crit_chance * 100))
+			var accuracy := float(move.get("accuracy", Moves.BASE_ACCURACY))
+			if accuracy < 1.0:
+				detail += " · %d%% hit" % int(round(accuracy * 100))
 		var cost_tag := "%d gel" % cost
 		if move.get("once_per_battle", false):
 			cost_tag += ", 1x"
@@ -587,11 +595,12 @@ func _play_move(move_id: String, target_index: int) -> void:
 			await _flash(goopzz_sprite)
 		"damage_lifesteal":
 			var dealt: int = await _hit_enemy(move, target_index)
-			var slurped := mini(int(ceil(dealt / 2.0)),
-				RunManager.player_max_hp - RunManager.player_hp)
-			RunManager.player_hp += slurped
-			_say("Slurp! Goopzz drank back %d HP!" % slurped)
-			await _sparkle(goopzz_sprite)
+			if dealt > 0:
+				var slurped := mini(int(ceil(dealt / 2.0)),
+					RunManager.player_max_hp - RunManager.player_hp)
+				RunManager.player_hp += slurped
+				_say("Slurp! Goopzz drank back %d HP!" % slurped)
+				await _sparkle(goopzz_sprite)
 		"heal":
 			var healed := mini(int(move.get("power", 0)),
 				RunManager.player_max_hp - RunManager.player_hp)
@@ -641,10 +650,15 @@ func _play_move(move_id: String, target_index: int) -> void:
 
 
 ## One damaging hit against one enemy, with flash + shake + weakness quips.
-## Returns the damage dealt (Slurp Slash heals from it).
+## Returns the damage dealt (Slurp Slash heals from it; a miss returns 0).
 func _hit_enemy(move: Dictionary, index: int) -> int:
 	var enemy: Dictionary = enemies[index]
-	var damage := _calc_damage(move, RunManager.player_attack + player_attack_bonus)
+	var roll := _roll_attack(move, RunManager.player_attack + player_attack_bonus)
+	if roll.missed:
+		_say("Goopzz's %s missed! %s wobbled aside." % [move.name, enemy.get("name", "???")])
+		await _dodge(enemy_sprites[index])
+		return 0
+	var damage: int = roll.damage
 	enemy.hp = maxi(0, int(enemy.hp) - damage)
 	_refresh_ui()
 	var quip := ""
@@ -652,8 +666,11 @@ func _hit_enemy(move: Dictionary, index: int) -> int:
 		quip = " Slimes HATE swords!"
 	elif move.type == "water":
 		quip = " Sploosh!"
-	_say("It hit %s for %d damage!%s" % [enemy.get("name", "???"), damage, quip])
-	await _flash(enemy_sprites[index])
+	if roll.crit:
+		_say("CRITICAL HIT! %s took a whopping %d damage!%s" % [enemy.get("name", "???"), damage, quip])
+	else:
+		_say("It hit %s for %d damage!%s" % [enemy.get("name", "???"), damage, quip])
+	await _flash(enemy_sprites[index], 26.0 if roll.crit else 14.0)
 	if int(enemy.hp) <= 0:
 		await _melt_enemy(index)
 	return damage
@@ -704,21 +721,27 @@ func _do_enemy_move(index: int) -> void:
 	match move.get("effect", "damage"):
 		"damage":
 			var attack: int = maxi(0, int(enemy.attack) + int(enemy.atk_bonus))
-			var damage := _calc_damage(move, attack)
-			# BLOCK soaks damage before HP does.
-			var absorbed: int = mini(player_block, damage)
-			player_block -= absorbed
-			var got_through: int = damage - absorbed
-			RunManager.player_hp = maxi(0, RunManager.player_hp - got_through)
-			if absorbed > 0 and got_through == 0:
-				_say("Goopzz's goo block soaked ALL %d damage!" % damage)
-			elif absorbed > 0:
-				_say("Block soaked %d — but %d got through!" % [absorbed, got_through])
+			var roll := _roll_attack(move, attack)
+			if roll.missed:
+				_say("%s missed! Goopzz squished out of the way." % enemy.get("name", "???"))
+				await _dodge(goopzz_sprite)
 			else:
-				_say("Ouch! Goopzz took %d damage!" % damage)
-			goopzz_sprite.texture = SpritePaths.tex("goopzz_angry")
-			await _flash(goopzz_sprite)
-			goopzz_sprite.texture = SpritePaths.tex("goopzz")
+				var damage: int = roll.damage
+				# BLOCK soaks damage before HP does.
+				var absorbed: int = mini(player_block, damage)
+				player_block -= absorbed
+				var got_through: int = damage - absorbed
+				RunManager.player_hp = maxi(0, RunManager.player_hp - got_through)
+				var prefix := "CRITICAL HIT! " if roll.crit else ""
+				if absorbed > 0 and got_through == 0:
+					_say("%sGoopzz's goo block soaked ALL %d damage!" % [prefix, damage])
+				elif absorbed > 0:
+					_say("%sBlock soaked %d — but %d got through!" % [prefix, absorbed, got_through])
+				else:
+					_say("%sOuch! Goopzz took %d damage!" % [prefix, damage])
+				goopzz_sprite.texture = SpritePaths.tex("goopzz_angry")
+				await _flash(goopzz_sprite, 26.0 if roll.crit else 14.0)
+				goopzz_sprite.texture = SpritePaths.tex("goopzz")
 		"buff_attack":
 			enemy.atk_bonus = int(enemy.atk_bonus) + int(move.get("power", 0))
 			_say("%s is getting angrier! Its attack rose!" % enemy.get("name", "???"))
@@ -739,6 +762,19 @@ func _calc_damage(move: Dictionary, attacker_attack: int) -> int:
 	amount *= float(Moves.TYPE_MULTIPLIER.get(move.get("type", "slime"), 1.0))
 	amount *= randf_range(DAMAGE_WIGGLE_LOW, DAMAGE_WIGGLE_HIGH)
 	return maxi(1, int(round(amount)))
+
+
+## Rolls one whole attack, in order: does it MISS? does it CRIT? how hard?
+## Used by Goopzz and enemies alike. Returns {"missed", "crit", "damage"}.
+## Crits multiply the final damage by Moves.CRIT_MULTIPLIER (1.5x).
+func _roll_attack(move: Dictionary, attacker_attack: int) -> Dictionary:
+	if randf() > float(move.get("accuracy", Moves.BASE_ACCURACY)):
+		return {"missed": true, "crit": false, "damage": 0}
+	var crit := randf() < float(move.get("crit_chance", Moves.BASE_CRIT_CHANCE))
+	var damage := _calc_damage(move, attacker_attack)
+	if crit:
+		damage = int(round(damage * Moves.CRIT_MULTIPLIER))
+	return {"missed": false, "crit": crit, "damage": damage}
 
 
 # ============================ endings ============================
@@ -796,15 +832,24 @@ func _wait(seconds: float) -> void:
 	await get_tree().create_timer(seconds).timeout
 
 
-## Red flash + shake = "that hurt".
-func _flash(sprite: Sprite2D) -> void:
+## Red flash + shake = "that hurt". Critical hits shake harder!
+func _flash(sprite: Sprite2D, shake: float = 14.0) -> void:
 	var home := sprite.position
 	var tween := create_tween()
 	tween.tween_property(sprite, "modulate", Color(1.0, 0.35, 0.35), 0.08)
-	tween.tween_property(sprite, "position", home + Vector2(14, 0), 0.05)
-	tween.tween_property(sprite, "position", home - Vector2(14, 0), 0.05)
+	tween.tween_property(sprite, "position", home + Vector2(shake, 0), 0.05)
+	tween.tween_property(sprite, "position", home - Vector2(shake, 0), 0.05)
 	tween.tween_property(sprite, "position", home, 0.05)
 	tween.tween_property(sprite, "modulate", Color.WHITE, 0.15)
+	await tween.finished
+
+
+## A quick sidestep — "you missed me!"
+func _dodge(sprite: Sprite2D) -> void:
+	var home := sprite.position
+	var tween := create_tween()
+	tween.tween_property(sprite, "position", home + Vector2(36, 0), 0.12)
+	tween.tween_property(sprite, "position", home, 0.2)
 	await tween.finished
 
 

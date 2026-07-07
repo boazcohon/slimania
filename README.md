@@ -66,6 +66,11 @@ Every hit is `(move power + attacker's ATTACK) × type bonus × a little luck`:
   when a duo shows up.
 - **Luck**: every hit is randomly wiggled between 85% and 115% — and enemy
   intent labels show that exact range before you commit to anything.
+- **Critical hits**: every attack (yours AND theirs) has a 10% chance to land
+  ×1.5 damage — beyond the shown range; that's the gamble. Bonk and Mega
+  Bonk crit **25%** of the time. Attacks can also carry an `accuracy` value
+  (a chance to miss entirely); everything is 100% for now, but the hook
+  exists for future high-risk moves.
 - **BLOCK** (Goo Shield +8 repeatable, Goo Armor +20 once per battle) soaks
   incoming damage before HP and expires when your next turn starts. Healing
   is limited too: Slime Snack and Royal Jelly are once per battle, while

@@ -17,6 +17,7 @@ const TIPS: Array = [
 	"Tip: water moves splash EVERY enemy — perfect when a slime brings a pal.",
 	"Tip: cheap 1-gel moves let you do more things each turn. Gels go fast!",
 	"Tip: enemies ANNOUNCE their next move. Save your block for the big ones!",
+	"Tip: every attack has a 10% critical-hit chance — Bonk moves crit 25% of the time!",
 	"Tip: once-per-battle moves (the [1x] ones) are emergency buttons — time them well.",
 ]
 
