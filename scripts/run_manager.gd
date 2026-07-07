@@ -45,6 +45,8 @@ var run_won: bool = false      # true when the player beats the last room
 ##                    art; the forest is the tougher second half of the run)
 ##    "hint"        — what Blurpo the guide slime says when you arrive
 ##    "full_heal"   — true = walking in restores Goopzz to full HP (rest stop)
+##    "duo_chance"  — odds (0.0-1.0) that each normal slime brings a pal into
+##                    battle with it (bosses never do)
 ##    "enemies"     — list of {"pos", "level"} (+ "boss": true for big ones)
 ##    "pickups"     — list of {"pos", "kind"} where kind is "move" or "heal"
 ##    "water"       — list of Rect2 water pools (JUMP over them — they hurt!)
@@ -55,6 +57,7 @@ const ROOMS: Array = [
 	{
 		"title": "Sandy Landing",
 		"area": "beach",
+		"duo_chance": 0.1,
 		"hint": "Welcome back, hero! WASD to move, SPACE to hop — and walk into that red slime to battle it!",
 		"enemies": [{"pos": Vector2(1400, 640), "level": 1}],
 		"pickups": [],
@@ -64,6 +67,7 @@ const ROOMS: Array = [
 	{
 		"title": "Tide Pools",
 		"area": "beach",
+		"duo_chance": 0.2,
 		"hint": "Hop over the water with SPACE — slimes and water do NOT mix! That rainbow thing is a Move Disc. Grab it!",
 		"enemies": [
 			{"pos": Vector2(1250, 450), "level": 1},
@@ -76,6 +80,7 @@ const ROOMS: Array = [
 	{
 		"title": "The Rocks",
 		"area": "beach",
+		"duo_chance": 0.3,
 		"hint": "Hold SHIFT on the rocks to climb — but hurry, slimes slip when their grip runs out!",
 		"enemies": [
 			{"pos": Vector2(1300, 400), "level": 2},
@@ -88,6 +93,7 @@ const ROOMS: Array = [
 	{
 		"title": "Slime Patrol",
 		"area": "beach",
+		"duo_chance": 0.4,
 		"hint": "Three on patrol! They're slower than you — lead them around and fight one at a time.",
 		"enemies": [
 			{"pos": Vector2(1150, 350), "level": 3},
@@ -101,6 +107,7 @@ const ROOMS: Array = [
 	{
 		"title": "Invader's Camp",
 		"area": "beach",
+		"duo_chance": 0.5,
 		"hint": "General Wobble runs the beach invasion. Show him what a REAL hero slime can do!",
 		"enemies": [
 			{"pos": Vector2(1100, 850), "level": 2},
@@ -130,6 +137,7 @@ const ROOMS: Array = [
 	{
 		"title": "Forest Edge",
 		"area": "forest",
+		"duo_chance": 0.5,
 		"hint": "The FOREST! Slimes grow bigger under the trees. Hop the stream if you need to shake off a chaser.",
 		"enemies": [
 			{"pos": Vector2(1250, 420), "level": 4},
@@ -142,6 +150,7 @@ const ROOMS: Array = [
 	{
 		"title": "Mushroom Grove",
 		"area": "forest",
+		"duo_chance": 0.5,
 		"hint": "Mind the pond — hop it or go around. And grab that Move Disc before the locals do!",
 		"enemies": [
 			{"pos": Vector2(1300, 400), "level": 4},
@@ -155,6 +164,7 @@ const ROOMS: Array = [
 	{
 		"title": "Deep Woods",
 		"area": "forest",
+		"duo_chance": 0.5,
 		"hint": "It's dark in here... these bullies hit HARD. Sand Throw makes them gentler, and Goo Shield never goes out of style.",
 		"enemies": [
 			{"pos": Vector2(1200, 380), "level": 5},
@@ -168,6 +178,7 @@ const ROOMS: Array = [
 	{
 		"title": "Tangled Thicket",
 		"area": "forest",
+		"duo_chance": 0.5,
 		"hint": "Almost there! Weave (or climb) through the tangle — Duke Mulch's lair is just past these rocks.",
 		"enemies": [
 			{"pos": Vector2(1250, 500), "level": 5},
@@ -180,6 +191,7 @@ const ROOMS: Array = [
 	{
 		"title": "Heart of the Forest",
 		"area": "forest",
+		"duo_chance": 0.5,
 		"hint": "Duke Mulch, the forest boss! Shield before his big slams, and don't be shy about healing.",
 		"enemies": [
 			{"pos": Vector2(1050, 850), "level": 4},
@@ -274,7 +286,9 @@ func make_enemy_stats(level: int, is_boss: bool = false) -> Dictionary:
 		"name": names.get(level, "Red Slime"),
 		"level": level,
 		"is_boss": is_boss,
-		"max_hp": 14 + level * 7,
+		# HP is beefy because Goopzz can now play SEVERAL moves per turn
+		# (the gel system) — fights should still last a few turns.
+		"max_hp": 20 + level * 10,
 		"attack": 1 + level * 2,
 		"moves": enemy_moves,
 		"xp": 10 + level * 5,

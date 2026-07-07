@@ -11,27 +11,34 @@ extends Node
 ##      "move_id": {
 ##          "name": "Shown to the player",
 ##          "type": "slime" / "sword" / "water" / "support",
+##          "cost": how many GELS it costs to use (0-4),
 ##          "effect": what it does (see the match statements in battle.gd),
 ##          "power": how strong the effect is,
 ##          "description": funny text shown on move cards,
 ##      }
 ##
+##  GELS are Goopzz's battle energy: he gets 4 every turn, each equipped move
+##  can be used once per turn, and leftover gels do NOT carry over. Spend
+##  them well, then End Turn.
+##
 ##  Effects the battle system understands:
-##      "damage"        — hit the other slime
-##      "multi_hit"     — hit several times (needs a "hits" number)
+##      "damage"        — hit one slime (WATER-type damage hits ALL enemies!)
+##      "multi_hit"     — hit one slime several times (needs a "hits" number)
 ##      "damage_recoil" — big hit, but you take "recoil" damage yourself
 ##      "heal"          — restore "power" HP
-##      "shield"        — the NEXT hit you take does half damage
+##      "block"         — gain "power" BLOCK: it soaks damage until your next
+##                        turn starts, then melts away
 ##      "buff_attack"   — your attacks get +"power" for this battle
-##      "debuff_attack" — enemy attacks get -"power" for this battle
+##      "debuff_attack" — ALL enemies' attacks get -"power" for this battle
 ## ============================================================================
 
-## THE RULE OF SLIMANIA: everyone is a slime, and slimes are weak to swords
-## (and soggy against water). So sword moves hit harder... on everyone.
+## THE RULE OF SLIMANIA: everyone is a slime, and slimes are weak to swords.
+## Water moves have a different superpower now — they splash EVERY enemy in
+## the fight (see battle.gd) — so they no longer get a damage bonus here.
 const TYPE_MULTIPLIER: Dictionary = {
 	"slime": 1.0,
 	"sword": 1.5,   # slimes HATE swords
-	"water": 1.25,  # slimes get soggy
+	"water": 1.0,   # water's perk is hitting the whole enemy team at once
 	"support": 1.0,
 }
 
@@ -46,53 +53,79 @@ const TYPE_COLORS: Dictionary = {
 const ALL_MOVES: Dictionary = {
 	# ------------------- Goopzz's starting four -------------------
 	"bonk": {
-		"name": "Bonk", "type": "slime", "effect": "damage", "power": 6,
+		"name": "Bonk", "type": "slime", "cost": 1, "effect": "damage", "power": 5,
 		"description": "A friendly headbutt. Reliable, like a good sandwich.",
 	},
 	"sword_slash": {
-		"name": "Sword Slash", "type": "sword", "effect": "damage", "power": 7,
+		"name": "Sword Slash", "type": "sword", "cost": 2, "effect": "damage", "power": 7,
 		"description": "Goopzz's trusty wooden sword. Slimes HATE swords.",
 	},
 	"goo_shield": {
-		"name": "Goo Shield", "type": "support", "effect": "shield", "power": 0,
-		"description": "Puff up into a wall of goo. The next hit does half damage.",
+		"name": "Goo Shield", "type": "support", "cost": 1, "effect": "block", "power": 8,
+		"description": "Puff up into a wall of goo. Blocks 8 damage until your next turn.",
 	},
 	"slime_snack": {
-		"name": "Slime Snack", "type": "support", "effect": "heal", "power": 14,
-		"description": "Munch an emergency snack. Restores 14 HP.",
+		"name": "Slime Snack", "type": "support", "cost": 1, "effect": "heal", "power": 10,
+		"description": "Munch an emergency snack. Restores 10 HP.",
 	},
 
 	# ------------------- Findable / reward moves -------------------
 	"double_bounce": {
-		"name": "Double Bounce", "type": "slime", "effect": "multi_hit", "power": 4, "hits": 2,
+		"name": "Double Bounce", "type": "slime", "cost": 2, "effect": "multi_hit",
+		"power": 4, "hits": 2,
 		"description": "Boing! Boing! Hits twice.",
 	},
 	"splash": {
-		"name": "Splash", "type": "water", "effect": "damage", "power": 8,
-		"description": "Slimes are weak to water. Yes, even you. Use responsibly.",
+		"name": "Splash", "type": "water", "cost": 2, "effect": "damage", "power": 7,
+		"description": "Soaks EVERY enemy — slimes are weak to water. Yes, even you.",
 	},
 	"battle_cry": {
-		"name": "Battle Cry", "type": "support", "effect": "buff_attack", "power": 3,
+		"name": "Battle Cry", "type": "support", "cost": 1, "effect": "buff_attack", "power": 2,
 		"description": "BLORP! Raises your attack for the rest of this battle.",
 	},
 	"sand_throw": {
-		"name": "Sand Throw", "type": "support", "effect": "debuff_attack", "power": 3,
-		"description": "Kick beach sand at the enemy. Lowers their attack.",
+		"name": "Sand Throw", "type": "support", "cost": 1, "effect": "debuff_attack", "power": 2,
+		"description": "Kick sand at EVERY enemy. Lowers their attack.",
 	},
 	"mega_bonk": {
-		"name": "Mega Bonk", "type": "slime", "effect": "damage", "power": 13,
+		"name": "Mega Bonk", "type": "slime", "cost": 3, "effect": "damage", "power": 14,
 		"description": "Like Bonk, but MEGA.",
 	},
 	"sword_spin": {
-		"name": "Sword Spin", "type": "sword", "effect": "damage_recoil", "power": 12, "recoil": 4,
+		"name": "Sword Spin", "type": "sword", "cost": 3, "effect": "damage_recoil",
+		"power": 11, "recoil": 4,
 		"description": "Spin with the sword! Huge damage, but you get dizzy (4 recoil damage).",
 	},
 	"royal_jelly": {
-		"name": "Royal Jelly", "type": "support", "effect": "heal", "power": 30,
-		"description": "Fancy healing jelly fit for a king. Restores 30 HP.",
+		"name": "Royal Jelly", "type": "support", "cost": 2, "effect": "heal", "power": 22,
+		"description": "Fancy healing jelly fit for a king. Restores 22 HP.",
+	},
+	"tsunami": {
+		"name": "Tsunami", "type": "water", "cost": 4, "effect": "damage", "power": 12,
+		"description": "THE BIG WAVE. Crashes into every enemy at once. Costs your whole turn.",
+	},
+	"rebel_yell": {
+		"name": "Rebel Yell", "type": "support", "cost": 2, "effect": "buff_attack", "power": 5,
+		"description": "A Battle Cry so loud the trees flinch. Attack way up!",
+	},
+	"sandstorm": {
+		"name": "Sandstorm", "type": "support", "cost": 2, "effect": "debuff_attack", "power": 4,
+		"description": "A whole BEACH of sand, airborne. Every enemy hits much softer.",
+	},
+	"goo_armor": {
+		"name": "Goo Armor", "type": "support", "cost": 2, "effect": "block", "power": 18,
+		"description": "Goo Shield's big sibling. Blocks 18 damage until your next turn.",
+	},
+	"pointy_stick": {
+		"name": "Pointy Stick", "type": "sword", "cost": 1, "effect": "damage", "power": 4,
+		"description": "Technically a sword! Cheap, cheerful, surprisingly pointy.",
+	},
+	"belly_flop": {
+		"name": "Belly Flop", "type": "slime", "cost": 4, "effect": "damage", "power": 18,
+		"description": "Leap. Flop. Flatten ONE unlucky slime. Worth the whole turn.",
 	},
 
-	# ------------------- Enemy-only moves -------------------
+	# --------- Enemy-only moves (enemies don't use gels, so no cost) ---------
 	"tackle": {
 		"name": "Tackle", "type": "slime", "effect": "damage", "power": 5,
 		"description": "A wobbly body slam.",
@@ -118,10 +151,15 @@ const STARTING_LOADOUT: Array = ["bonk", "sword_slash", "goo_shield", "slime_sna
 const REWARD_POOL: Array = [
 	"double_bounce", "splash", "battle_cry", "sand_throw",
 	"mega_bonk", "sword_spin", "royal_jelly",
+	"tsunami", "rebel_yell", "sandstorm", "goo_armor",
+	"pointy_stick", "belly_flop",
 ]
 
 ## How many moves Goopzz can carry at once (Pokemon-style four slots).
 const MAX_LOADOUT_SIZE: int = 4
+
+## How many gels Goopzz gets at the start of each battle turn.
+const GELS_PER_TURN: int = 4
 
 
 ## Safe lookup — a typo'd id returns a dummy move instead of crashing.
@@ -129,7 +167,10 @@ func get_move(move_id: String) -> Dictionary:
 	if ALL_MOVES.has(move_id):
 		return ALL_MOVES[move_id]
 	push_warning("Moves: unknown move id '%s'." % move_id)
-	return {"name": move_id, "type": "slime", "effect": "damage", "power": 1, "description": "???"}
+	return {
+		"name": move_id, "type": "slime", "cost": 1,
+		"effect": "damage", "power": 1, "description": "???",
+	}
 
 
 func type_color(type_name: String) -> Color:

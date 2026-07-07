@@ -309,15 +309,18 @@ func _build_player() -> void:
 
 func _build_enemies(config: Dictionary) -> void:
 	enemies_left = 0
+	# Each room sets "duo_chance" — the odds that a normal slime shows up
+	# with a pal (a second slime in the same battle). Bosses never do.
+	var duo_chance: float = config.get("duo_chance", 0.0)
 	for enemy_config in config.get("enemies", []):
+		var level: int = enemy_config.get("level", 1)
+		var is_boss: bool = enemy_config.get("boss", false)
+		var buddy: Dictionary = {}
+		if not is_boss and randf() < duo_chance:
+			# The pal is one level weaker (but never below level 1).
+			buddy = RunManager.make_enemy_stats(maxi(1, level - 1))
 		var enemy: EnemySlime = EnemyScene.instantiate()
-		enemy.setup(
-			RunManager.make_enemy_stats(
-				enemy_config.get("level", 1),
-				enemy_config.get("boss", false)
-			),
-			player
-		)
+		enemy.setup(RunManager.make_enemy_stats(level, is_boss), player, buddy)
 		enemy.position = enemy_config.get("pos", ROOM_SIZE / 2.0)
 		enemy.touched_player.connect(_on_enemy_touched_player)
 		add_child(enemy)
@@ -341,8 +344,11 @@ func _on_enemy_touched_player(enemy: EnemySlime) -> void:
 	if battle_cooldown > 0.0 or get_tree().paused:
 		return
 	get_tree().paused = true  # freezes player + enemies; the battle runs on top
+	var battle_party: Array = [enemy.stats]
+	if not enemy.buddy_stats.is_empty():
+		battle_party.append(enemy.buddy_stats)  # duos fight two-on-one!
 	var battle: BattleScreen = BattleScene.instantiate()
-	battle.setup(enemy.stats)
+	battle.setup(battle_party)
 	battle.finished.connect(_on_battle_finished.bind(enemy))
 	add_child(battle)
 	active_battle = battle
@@ -488,12 +494,12 @@ func _build_hud(config: Dictionary) -> void:
 
 	# --- top-right: the four equipped moves ---
 	var moves_header := UiHelpers.label("MOVES", 16, Color(0.8, 0.9, 0.8))
-	moves_header.position = Vector2(1060, 12)
+	moves_header.position = Vector2(1020, 12)
 	hud.add_child(moves_header)
 	loadout_labels = []
 	for slot in Moves.MAX_LOADOUT_SIZE:
-		var slot_label := UiHelpers.label("", 17)
-		slot_label.position = Vector2(1060, 40 + slot * 26)
+		var slot_label := UiHelpers.label("", 16)
+		slot_label.position = Vector2(1020, 40 + slot * 26)
 		hud.add_child(slot_label)
 		loadout_labels.append(slot_label)
 
@@ -545,7 +551,9 @@ func _refresh_hud() -> void:
 	for slot in loadout_labels.size():
 		if slot < RunManager.loadout.size():
 			var move := Moves.get_move(RunManager.loadout[slot])
-			loadout_labels[slot].text = "%d. %s · %s" % [slot + 1, move.name, move.type]
+			loadout_labels[slot].text = "%d. %s · %s · %d gel" % [
+				slot + 1, move.name, move.type, int(move.get("cost", 1)),
+			]
 			loadout_labels[slot].add_theme_color_override(
 				"font_color", Moves.type_color(move.type).lightened(0.35)
 			)

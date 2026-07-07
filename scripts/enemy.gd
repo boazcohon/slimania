@@ -25,6 +25,7 @@ signal touched_player(enemy: EnemySlime)
 const SPRITE_SCALE := 0.13  # Isaac's art is 512px; this shrinks it to ~66px
 
 var stats: Dictionary = {}
+var buddy_stats: Dictionary = {}  # non-empty = this slime brought a pal (DUO!)
 var player: Node2D = null
 var wander_direction := Vector2.ZERO
 var wander_timer := 0.0
@@ -36,9 +37,12 @@ var body_sprite: Sprite2D
 
 ## The overworld calls this right after creating the enemy, BEFORE it enters
 ## the tree — so _ready() below can rely on `stats` being filled in.
-func setup(enemy_stats: Dictionary, player_node: Node2D) -> void:
+## Pass a second stats dictionary as `buddy` to make this a duo: the pal
+## walks alongside in the overworld and joins the battle as a 2nd enemy.
+func setup(enemy_stats: Dictionary, player_node: Node2D, buddy: Dictionary = {}) -> void:
 	stats = enemy_stats
 	player = player_node
+	buddy_stats = buddy
 
 
 func _ready() -> void:
@@ -61,6 +65,17 @@ func _ready() -> void:
 
 	var size_scale: float = stats.get("sprite_scale", 1.0)
 
+	# The pal walks slightly behind and to the side (added first = drawn
+	# underneath). It's just a costume out here — the REAL second slime
+	# appears in battle.
+	if not buddy_stats.is_empty():
+		var buddy_sprite := Sprite2D.new()
+		buddy_sprite.texture = SpritePaths.tex("enemy_slime")
+		buddy_sprite.scale = Vector2.ONE * SPRITE_SCALE * 0.8 \
+			* float(buddy_stats.get("sprite_scale", 1.0))
+		buddy_sprite.position = Vector2(42, 14)
+		add_child(buddy_sprite)
+
 	body_sprite = Sprite2D.new()
 	body_sprite.texture = SpritePaths.tex("enemy_slime")
 	body_sprite.scale = Vector2.ONE * SPRITE_SCALE * size_scale
@@ -72,11 +87,11 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 
-	# Name tag floating above, e.g. "Angry Red  Lv 3".
-	var name_label := UiHelpers.label(
-		"%s  Lv %d" % [stats.get("name", "Slime"), stats.get("level", 1)], 15,
-		Color(1.0, 0.82, 0.82)
-	)
+	# Name tag floating above, e.g. "Angry Red  Lv 3" (duos get "& pal").
+	var tag := "%s  Lv %d" % [stats.get("name", "Slime"), stats.get("level", 1)]
+	if not buddy_stats.is_empty():
+		tag = "%s & pal  Lv %d" % [stats.get("name", "Slime"), stats.get("level", 1)]
+	var name_label := UiHelpers.label(tag, 15, Color(1.0, 0.82, 0.82))
 	name_label.custom_minimum_size = Vector2(160, 0)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.position = Vector2(-80, -52.0 - 30.0 * size_scale)

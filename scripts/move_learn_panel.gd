@@ -110,7 +110,9 @@ func _make_move_card(move_id: String) -> Control:
 	pick_button.pressed.connect(_on_move_chosen.bind(move_id))
 	card.add_child(pick_button)
 
-	var stats_line := "%s  ·  power %d" % [str(move.type).to_upper(), int(move.get("power", 0))]
+	var stats_line := "%s  ·  %d gel  ·  power %d" % [
+		str(move.type).to_upper(), int(move.get("cost", 1)), int(move.get("power", 0)),
+	]
 	if move.get("effect", "") == "multi_hit":
 		stats_line += "  x%d hits" % int(move.get("hits", 2))
 	var info := UiHelpers.label(stats_line, 14, Color(0.85, 0.85, 0.85))
