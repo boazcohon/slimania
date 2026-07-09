@@ -1,3 +1,7 @@
 # Godot's auto-generated cache folder. It gets rebuilt every time the project
 # opens, so it never belongs in git.
 .godot/
+
+# Browser port dependencies and build output.
+node_modules/
+dist/

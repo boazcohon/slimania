@@ -1,4 +1,4 @@
-# SLIMANIA — Phase 1: the roguelike prototype
+# SLIMANIA - Three.js browser port
 
 You are **Goopzz**, a green slime with a wooden sword, bonking his way through
 11 stops: 5 beach rooms, a safe breather in **Forest Town** (free full heal!),
@@ -6,7 +6,34 @@ then 5 tougher **forest** rooms. Die and the run restarts — that's the
 roguelike loop. **Blurpo**, the purple help slime in the corner, tells you
 what to do in each room. All art is hand-drawn by Isaac.
 
-## How to open and run it (Godot 4)
+## How to run it in the browser
+
+This repo now includes a Three.js + Vite browser port. The original Godot files
+are still present in `scripts/`, `scenes/`, and `project.godot` as reference.
+
+1. Install Node.js 20 or newer.
+2. Install dependencies:
+
+   ```sh
+   npm install
+   ```
+
+3. Start the dev server:
+
+   ```sh
+   npm run dev
+   ```
+
+4. Open the local URL Vite prints, usually <http://localhost:5173/>.
+
+Useful commands:
+
+```sh
+npm run build
+npm run preview
+```
+
+## Original Godot project
 
 1. Install **Godot 4.3 or newer** (the free standard version, not .NET):
    <https://godotengine.org/download>
